@@ -57,17 +57,21 @@ public class WebSecurityConfiguration {
     // 1) Actuator/management chain FIRST
     @Bean
     @Order(0)
-    SecurityFilterChain actuatorChain(HttpSecurity http) throws Exception {
-        http
-                .securityMatcher(EndpointRequest.toAnyEndpoint())
-                .authorizeHttpRequests(a -> a.anyRequest().permitAll())
-                // CSRF is ignored only for Actuator because these endpoints are stateless, non-browser, and IP-restricted.
-                // Auth is intentionally open in this environment (internal-only).
-                // .csrf(csrf -> csrf.ignoringRequestMatchers(EndpointRequest.toAnyEndpoint()))
-                .csrf(Customizer.withDefaults()) // keep enabled; POSTs will 403 without token
-                // .csrf(csrf -> csrf.disable())
-                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
-        return http.build();
+    SecurityFilterChain actuatorChain(HttpSecurity http)  {
+        try {
+            http
+                    .securityMatcher(EndpointRequest.toAnyEndpoint())
+                    .authorizeHttpRequests(a -> a.anyRequest().permitAll())
+                    // CSRF is ignored only for Actuator because these endpoints are stateless, non-browser, and IP-restricted.
+                    // Auth is intentionally open in this environment (internal-only).
+                    // .csrf(csrf -> csrf.ignoringRequestMatchers(EndpointRequest.toAnyEndpoint()))
+                    .csrf(Customizer.withDefaults()) // keep enabled; POSTs will 403 without token
+                    // .csrf(csrf -> csrf.disable())
+                    .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+            return http.build();
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to configure Actuator Security Chain", e);
+        }
     }
 
     /**
@@ -81,13 +85,17 @@ public class WebSecurityConfiguration {
     // 2) Application chain SECOND
     @Bean
     @Order(1)
-    public SecurityFilterChain serviceSecurityFilterChain(HttpSecurity http) throws Exception {
-        // enableSecureChannel(http);           // Forces All Request to be Secured (HTTPS)
-        csrfProtection(http);                   // Step 1: Set CSRF Protection
-        authorizeHttpRequests(http);         // Step 2: Set Authorization Policies
-        xFrameProtection(http);               // Step 3: Set X-Frame Protection
-        contentSecurityPolicy(http);          // Step 4: Set Content Security Policy
-        return http.build();                     // Step 5: Build Security Filter Chain
+    public SecurityFilterChain serviceSecurityFilterChain(HttpSecurity http) {
+        try {
+            // enableSecureChannel(http);           // Forces All Request to be Secured (HTTPS)
+            csrfProtection(http);                   // Step 1: Set CSRF Protection
+            authorizeHttpRequests(http);         // Step 2: Set Authorization Policies
+            xFrameProtection(http);               // Step 3: Set X-Frame Protection
+            contentSecurityPolicy(http);          // Step 4: Set Content Security Policy
+            return http.build();                     // Step 5: Build Security Filter Chain
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to configure Service Security Chain", e);
+        }
     }
 
     /**
@@ -95,12 +103,15 @@ public class WebSecurityConfiguration {
      * @param http
      * @throws Exception
      */
-    public void enableSecureChannel(HttpSecurity http) throws Exception {
-        http.requiresChannel(channel -> channel
-                .anyRequest().requiresSecure()
-        );
+    public void enableSecureChannel(HttpSecurity http) {
+        try {
+            http.requiresChannel(channel -> channel
+                    .anyRequest().requiresSecure()
+            );
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to enable secure channel", e);
+        }
     }
-
     /**
      * Configures Cross-Site Request Forgery (CSRF) protection for HTTP security. This method typically
      * enables CSRF protection using a cookie-based CSRF token repository, making CSRF tokens accessible
@@ -109,7 +120,7 @@ public class WebSecurityConfiguration {
      * @param http the {@link HttpSecurity} object to configure HTTP security for the application
      * @throws Exception if there is a problem during configuration
      */
-    private void csrfProtection(HttpSecurity http) throws Exception {
+    private void csrfProtection(HttpSecurity http)  {
         // Enable CSRF Protection
         // http.csrf(csrf -> ...):
 	    // - Configures CSRF protection for the application.
@@ -119,9 +130,13 @@ public class WebSecurityConfiguration {
         //	- The variable apiPath likely holds a string such as /api/v1. This would exclude all
         // 	endpoints like /api/v1/* or /api/v1/resource/123 from CSRF validation.
         //	- Typically used to exclude REST API endpoints, which are not vulnerable to CSRF in most cases.
-        http.csrf(csrf -> csrf
-                .ignoringRequestMatchers(apiPath +"/**")
-        );
+        try {
+            http.csrf(csrf -> csrf
+                    .ignoringRequestMatchers(apiPath + "/**")
+            );
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to configure CSRF protection", e);
+        }
     }
 
     /**
@@ -132,20 +147,24 @@ public class WebSecurityConfiguration {
      * @param http the {@link HttpSecurity} object to configure HTTP security for the application
      * @throws Exception if there is a problem during configuration
      */
-    private void authorizeHttpRequests(HttpSecurity http) throws Exception {
-        http.authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers(apiPath + "/**").permitAll()
-                        .requestMatchers("/actuator/**").permitAll()  // Allow access to actuator endpoints
-                        // Require authentication for any other requests
-                        .anyRequest().permitAll()
-                )
-                // This configures exception handling, specifically specifying that when a user tries to access a page
-                // they're not authorized to view, they're redirected to "/403" (typically an "Access Denied" page).
-                .exceptionHandling(exceptionHandling -> exceptionHandling
-                        .accessDeniedPage("/403"))
-                // Make sure to add stateless session management since it's a microservice
-                .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+    private void authorizeHttpRequests(HttpSecurity http)  {
+        try {
+            http.authorizeHttpRequests(authorize -> authorize
+                            .requestMatchers(apiPath + "/**").permitAll()
+                            .requestMatchers("/actuator/**").permitAll()  // Allow access to actuator endpoints
+                            // Require authentication for any other requests
+                            .anyRequest().permitAll()
+                    )
+                    // This configures exception handling, specifically specifying that when a user tries to access a page
+                    // they're not authorized to view, they're redirected to "/403" (typically an "Access Denied" page).
+                    .exceptionHandling(exceptionHandling -> exceptionHandling
+                            .accessDeniedPage("/403"))
+                    // Make sure to add stateless session management since it's a microservice
+                    .sessionManagement(session -> session
+                            .sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to configure AuthorizeHTTPRequest", e);
+        }
     }
 
     /**
@@ -155,17 +174,21 @@ public class WebSecurityConfiguration {
      * @param http the {@link HttpSecurity} object to configure HTTP security for the application
      * @throws Exception if there is a problem during configuration
      */
-    private void xFrameProtection(HttpSecurity http) throws Exception {
+    private void xFrameProtection(HttpSecurity http)  {
         // X-Frame-Options is a security header that is intended to protect your website against "clickjacking" attacks.
         // Clickjacking is a malicious technique of tricking web users into revealing confidential information or taking
         // control of their interaction with the website, by loading your website in an iframe of another website and
         // then overlaying it with additional content.
-        http.headers(headers -> headers
-                .frameOptions(HeadersConfigurer.FrameOptionsConfig::deny)
-                .contentSecurityPolicy(csp -> csp
-                        .policyDirectives("default-src 'self'; frame-ancestors 'none'")
-                )
-        );
+        try {
+            http.headers(headers -> headers
+                    .frameOptions(HeadersConfigurer.FrameOptionsConfig::deny)
+                    .contentSecurityPolicy(csp -> csp
+                            .policyDirectives("default-src 'self'; frame-ancestors 'none'")
+                    )
+            );
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to configure X-Frame Protection", e);
+        }
     }
 
     /**
@@ -178,26 +201,30 @@ public class WebSecurityConfiguration {
      * @param http the {@link HttpSecurity} object to configure HTTP security for the application
      * @throws Exception if there is a problem during configuration
      */
-    private void contentSecurityPolicy(HttpSecurity http) throws Exception {
+    private void contentSecurityPolicy(HttpSecurity http)  {
         // Content Security Policy
         // The last part sets the Content Security Policy (CSP). This is a security measure that helps prevent a range
         // of attacks, including Cross-Site Scripting (XSS) and data injection attacks. It does this by specifying which
         // domains the browser should consider to be valid sources of executable scripts. In this case, scripts
         // (script-src) and objects (object-src) are only allowed from the same origin ('self') or from a subdomain of
         // the specified host name.
-        http.headers(headers -> headers
-                .contentSecurityPolicy(csp -> csp
-                        .policyDirectives("default-src 'self'; " +
-                                "frame-ancestors 'none'; " +
-                                "script-src 'self' *." + hostName + "; " +
-                                "object-src 'self' *." + hostName + "; " +
-                                "img-src 'self'; " +
-                                "media-src 'self'; " +
-                                "frame-src 'self'; " +
-                                "font-src 'self'; " +
-                                "connect-src 'self'")
-                )
-        );
+        try {
+            http.headers(headers -> headers
+                    .contentSecurityPolicy(csp -> csp
+                            .policyDirectives("default-src 'self'; " +
+                                    "frame-ancestors 'none'; " +
+                                    "script-src 'self' *." + hostName + "; " +
+                                    "object-src 'self' *." + hostName + "; " +
+                                    "img-src 'self'; " +
+                                    "media-src 'self'; " +
+                                    "frame-src 'self'; " +
+                                    "font-src 'self'; " +
+                                    "connect-src 'self'")
+                    )
+            );
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to configure Content Security Policy", e);
+        }
     }
 
     /**
