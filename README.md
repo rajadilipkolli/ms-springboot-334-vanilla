@@ -136,8 +136,8 @@ for more details on this topic.
 
 ### Pre-Requisites
 
-1. SpringBoot 3.3.4
-2. Java 23 (Minimum Requirement Java 17)
+1. SpringBoot 3.5.4
+2. Java 23 (Minimum Requirement Java 21)
 3. Jakarta EE 10 (jakarta.servlet.*, jakarta.persistence.*, javax.validation.*)
 4. Maven 3.8.6
 5. Git 2.31
