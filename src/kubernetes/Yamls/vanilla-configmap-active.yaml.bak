@@ -3,4 +3,4 @@ kind: ConfigMap
 metadata:
   name: vanilla-configmap-active
 data:
-  spring.profiles.active: prod
+  spring.profiles.active: dev
