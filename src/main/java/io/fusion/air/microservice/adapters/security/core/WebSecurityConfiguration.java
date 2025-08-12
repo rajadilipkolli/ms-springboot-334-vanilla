@@ -17,8 +17,10 @@ package io.fusion.air.microservice.adapters.security.core;
 // Custom
 import io.fusion.air.microservice.server.config.ServiceConfig;
 // Spring
+import org.springframework.boot.actuate.autoconfigure.security.servlet.EndpointRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
@@ -51,6 +53,18 @@ public class WebSecurityConfiguration {
         hostName = serviceConfig.getServerHost();
     }
 
+    // 1) Actuator/management chain FIRST
+    @Bean
+    @Order(0)
+    SecurityFilterChain actuatorChain(HttpSecurity http) throws Exception {
+        http
+                .securityMatcher(EndpointRequest.toAnyEndpoint())
+                .authorizeHttpRequests(a -> a.anyRequest().permitAll())
+                .csrf(csrf -> csrf.disable())
+                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+        return http.build();
+    }
+
     /**
      * Configures the security filter chain for HTTP requests, applying various security measures
      * such as request authorization, CSRF protection, and content security policies.
@@ -59,8 +73,10 @@ public class WebSecurityConfiguration {
      * @return the constructed {@link SecurityFilterChain}
      * @throws Exception if there is a problem during configuration
      */
+    // 2) Application chain SECOND
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    @Order(1)
+    public SecurityFilterChain serviceSecurityFilterChain(HttpSecurity http) throws Exception {
         // enableSecureChannel(http);           // Forces All Request to be Secured (HTTPS)
         csrfProtection(http);                   // Step 1: Set CSRF Protection
         authorizeHttpRequests(http);         // Step 2: Set Authorization Policies
@@ -167,6 +183,7 @@ public class WebSecurityConfiguration {
         http.headers(headers -> headers
                 .contentSecurityPolicy(csp -> csp
                         .policyDirectives("default-src 'self'; " +
+                                "frame-ancestors 'none'; " +
                                 "script-src 'self' *." + hostName + "; " +
                                 "object-src 'self' *." + hostName + "; " +
                                 "img-src 'self'; " +

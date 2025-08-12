@@ -7,7 +7,7 @@
 [![Duplicated Lines (%)](https://sonarcloud.io/api/project_badges/measure?project=arafkarsh_ms-springboot-334-vanilla&metric=duplicated_lines_density)](https://sonarcloud.io/summary/new_code?id=arafkarsh_ms-springboot-334-vanilla)
 
 1. Java 23 (Minimum Requirement: Java 17)
-2. SpringBoot 3.4.1
+2. SpringBoot 3.5.4
 3. Jakarta EE 10 
 
 Cloud-native (or microservice) architecture is an approach to application design in which software is 
