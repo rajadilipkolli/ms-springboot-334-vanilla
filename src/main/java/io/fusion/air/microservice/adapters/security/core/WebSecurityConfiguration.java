@@ -21,6 +21,7 @@ import org.springframework.boot.actuate.autoconfigure.security.servlet.EndpointR
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
@@ -62,7 +63,8 @@ public class WebSecurityConfiguration {
                 .authorizeHttpRequests(a -> a.anyRequest().permitAll())
                 // CSRF is ignored only for Actuator because these endpoints are stateless, non-browser, and IP-restricted.
                 // Auth is intentionally open in this environment (internal-only).
-                .csrf(csrf -> csrf.ignoringRequestMatchers(EndpointRequest.toAnyEndpoint()))
+                // .csrf(csrf -> csrf.ignoringRequestMatchers(EndpointRequest.toAnyEndpoint()))
+                .csrf(Customizer.withDefaults()) // keep enabled; POSTs will 403 without token
                 // .csrf(csrf -> csrf.disable())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
         return http.build();
