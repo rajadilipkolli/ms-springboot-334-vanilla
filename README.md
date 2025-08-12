@@ -9,6 +9,7 @@
 1. Java 23 (Minimum Requirement: Java 21)
 2. SpringBoot 3.5.4 (July 24, 2025)
 3. Jakarta EE 10 
+4. Axon 5 Framework (For Event Sourcing & CQRS)
 
 Cloud-native (or microservice) architecture is an approach to application design in which software is 
 broken down into small, independent services that communicate through lightweight APIs, enabling 
