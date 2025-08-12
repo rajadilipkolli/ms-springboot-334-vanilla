@@ -60,7 +60,10 @@ public class WebSecurityConfiguration {
         http
                 .securityMatcher(EndpointRequest.toAnyEndpoint())
                 .authorizeHttpRequests(a -> a.anyRequest().permitAll())
-                .csrf(csrf -> csrf.disable())
+                // CSRF is ignored only for Actuator because these endpoints are stateless, non-browser, and IP-restricted.
+                // Auth is intentionally open in this environment (internal-only).
+                .csrf(csrf -> csrf.ignoringRequestMatchers(EndpointRequest.toAnyEndpoint()))
+                // .csrf(csrf -> csrf.disable())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
         return http.build();
     }
