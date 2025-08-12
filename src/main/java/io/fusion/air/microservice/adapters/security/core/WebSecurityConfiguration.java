@@ -69,7 +69,7 @@ public class WebSecurityConfiguration {
                     // .csrf(csrf -> csrf.disable())
                     .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
             return http.build();
-        } catch (Exception e) {
+         } catch (Exception e) {
             throw new IllegalStateException("Failed to configure Actuator Security Chain", e);
         }
     }
