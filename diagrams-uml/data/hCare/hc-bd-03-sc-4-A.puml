@@ -1,0 +1,11 @@
+@startuml
+title State Chart — Lab Order
+[*] #Green --> Ordered #A5D6A7
+Ordered --> SampleCollected  #FFB74D : sample taken
+SampleCollected --> Processing #E1BEE7 : analysis started
+Processing --> ResultReady #B3E5FC : verification complete
+ResultReady --> Published #90CAF9 : result posted to patient/doctor
+Ordered --> Cancelled #EF9A9A : order withdrawn
+Published --> [*] #Red
+Cancelled --> [*]
+@enduml

@@ -1,0 +1,42 @@
+@startuml
+title Sequence — Outbox + Idempotent Consumer (Retry & Dedupe)
+autonumber
+participant "Order Service" as ORDER #FFF3E0
+participant "Order DB" as ODB
+participant "Outbox Publisher" as OUTBOX #ECEFF1
+participant "Kafka (Event Bus)" as KAFKA #ECEFF1
+participant "Inventory Service" as INV #E6F4EA
+participant "ProcessedMsg Store" as PM #E6F4EA
+
+' === Producer side: write data + outbox in ONE TX ===
+ORDER -> ODB: BEGIN TX\nsave(order)\nsave(outbox{msgId, topic, payload})
+ODB --> ORDER: COMMIT
+
+' === Relay: reliably publish to Kafka with retries ===
+loop Retry until ack
+  OUTBOX -> ODB: fetchUnsent(limit N)
+  OUTBOX -> KAFKA: publish(order.placed, msgId, key=orderId)
+  alt Acked
+    KAFKA --> OUTBOX: ack(msgId)
+    OUTBOX -> ODB: markSent(msgId)
+  else Temporary error
+    ' backoff; nothing markedSent → loop
+  end
+end
+
+' === Consumer side: idempotent processing ===
+KAFKA -> INV: consume(order.placed, msgId, orderId)
+INV -> PM: tryInsert(msgId)  ' dedupe check
+alt First delivery (insert OK)
+  INV -> INV: reserve(orderId)
+  INV -> PM: markDone(msgId)
+  INV -> KAFKA: publish(inventory.reserved, correlation=msgId)
+else Duplicate (msgId exists)
+  INV -> INV: skip processing (idempotent)
+end
+
+' === Failure path with DLT ===
+alt Processing fails repeatedly
+  INV -> KAFKA: publish to DeadLetter: order.placed.DLT\n{msgId, reason}
+end
+@enduml

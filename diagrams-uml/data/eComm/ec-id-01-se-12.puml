@@ -1,0 +1,55 @@
+@startuml
+title Sequence — Shipping via Carrier-Agnostic Adapter (DHL / FedEx)
+autonumber
+participant "Order Service" as ORDER  #FFF3E0
+participant "Shipping Service" as SHIP #E0F2F1
+participant "Carrier Router/Adapter" as ADAPTER #E0F2F1
+participant "DHL Adapter" as AD_DHL   #E0F2F1
+participant "FedEx Adapter" as AD_FDX #E0F2F1
+actor "DHL API" as DHL  #CFD8DC
+actor "FedEx API" as FDX #CFD8DC
+participant "Kafka (Event Bus)" as KAFKA #ECEFF1
+
+' Order was marked Paid earlier
+ORDER -> SHIP: onOrderPaid(orderId, toAddress, prefs)
+SHIP -> ADAPTER: createShipment(orderId, toAddress, prefs)
+
+alt Route rule → DHL
+  ADAPTER -> AD_DHL: create(orderId, toAddress)
+  AD_DHL -> DHL: POST /shipments
+  DHL --> AD_DHL: 201 {trackingNumber, labelUrl}
+  AD_DHL --> ADAPTER: shipmentId, tracking
+else Route rule → FedEx
+  ADAPTER -> AD_FDX: create(orderId, toAddress)
+  AD_FDX -> FDX: POST /shipments
+  FDX --> AD_FDX: 201 {trackingNumber, labelUrl}
+  AD_FDX --> ADAPTER: shipmentId, tracking
+end
+
+ADAPTER --> SHIP: shipmentId, trackingNumber, labelUrl
+SHIP -> KAFKA: publish shipment.created{orderId, shipmentId, carrier, tracking}
+
+' --- Failure fallback: try alternate carrier ---
+alt Primary carrier fails
+  ADAPTER -> AD_DHL: create(...)  ' try other carrier
+  AD_DHL -> DHL: POST /shipments
+  alt Success
+    DHL --> AD_DHL: 201 {trackingNumber}
+    AD_DHL --> ADAPTER: shipmentId, tracking
+    ADAPTER --> SHIP: shipment details
+    SHIP -> KAFKA: publish shipment.created{...}
+  else Also fails
+    ADAPTER --> SHIP: error(reason)
+    SHIP -> KAFKA: publish shipping.failed{orderId, reason}
+  end
+end
+
+' --- Webhook status updates → adapter → service → Kafka ---
+DHL -> AD_DHL: webhook picked/shipped/delivered
+AD_DHL -> SHIP: statusUpdate(orderId, status)
+SHIP -> KAFKA: publish shipment.<status>{orderId, shipmentId}
+
+FDX -> AD_FDX: webhook picked/shipped/delivered
+AD_FDX -> SHIP: statusUpdate(orderId, status)
+SHIP -> KAFKA: publish shipment.<status>{orderId, shipmentId}
+@enduml

@@ -1,0 +1,35 @@
+@startuml
+title Interaction Overview — Visit → Diagnosis → Lab Result
+skinparam ArrowColor #6B7280
+skinparam activity {
+  StartColor #00B050
+  EndColor   #C00000
+  BackgroundColor #FFFFFF
+  BorderColor #374151
+  FontColor #111111
+}
+
+start
+#E3F2FD:Check-in (Appointment) <<interaction>>;
+#F1F8E9:Create Encounter <<interaction>>;
+
+if (Precheck successful?) then (yes)
+  #FFFDE7:Pre-Checkup (Vitals) <<interaction>>;
+else (no)
+  #ECEFF1:Reschedule / Exit;
+  stop
+endif
+
+#F3E5F5:Fetch Medical History <<interaction>>;
+#EDE7F6:Diagnostic Consultation <<interaction>>;
+#FFF3E0:Create eRx <<interaction>>;
+
+fork
+  #E1F5FE:Create Lab Order <<interaction>>;
+fork again
+  #E8EAF6:Notify Patient/Doctor <<interaction>>;
+end fork
+
+#E1F5FE:Process Lab, Publish Result <<interaction>>;
+end
+@enduml

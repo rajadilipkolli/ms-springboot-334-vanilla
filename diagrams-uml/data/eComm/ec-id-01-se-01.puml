@@ -1,0 +1,35 @@
+@startuml
+title Sequence — Browse/Search → View → Add to Cart
+autonumber
+actor Customer as C
+participant "API Gateway/BFF" as G #ECEFF1
+participant "Authentication" as AUTH #E0F7FA
+participant "Search Service" as SEARCH #E3F2FD
+participant "Product Catalogue" as CAT #E1F5FE
+participant "Shopping Cart" as CART #FFFDE7
+participant "Kafka (Event Bus)" as KAFKA #ECEFF1
+
+C -> G: Login(username, password)
+G -> AUTH: authenticate()
+AUTH --> G: token
+G --> C: session
+
+C -> G: Search(query, filters)
+G -> SEARCH: search(query, filters)
+SEARCH --> G: results[]
+G --> C: results[]
+
+C -> G: View product(productId)
+G -> CAT: getProduct(productId)
+CAT --> G: product details
+G --> C: product details
+
+G -> KAFKA: publish [topic=product.viewed, {customerId, productId, ts}]
+
+C -> G: Add to cart(productId, qty)
+G -> CART: addItem(customerId, productId, qty)
+CART --> G: cartSummary
+G --> C: cartSummary
+
+G -> KAFKA: publish [topic=cart.updated, {cartId, delta, ts}]
+@enduml

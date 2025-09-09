@@ -1,0 +1,50 @@
+@startuml
+left to right direction
+skinparam Shadowing true
+skinparam roundcorner 22
+skinparam DefaultTextAlignment center
+skinparam RectangleBorderColor #555555
+skinparam ArrowThickness 1.2
+skinparam ArrowColor #555555
+skinparam ArrowFontSize 12
+skinparam UsecaseBorderColor #555555
+skinparam UsecaseFontColor white
+
+' External entities (rectangles)
+rectangle "Patient"  as PAT #F4D13D
+rectangle "Lab"      as LAB #F46B45
+rectangle "Nurse"    as NUR #8BC34A
+rectangle "Doctor"   as DOC #4BA3F7
+rectangle "Pharmacy" as PHA #E91E63
+
+' Process (DFD) — ellipse/oval
+usecase "Health\nCare App" as APP #7E3FF2
+
+' Keep APP centered
+PAT -[hidden]-> APP
+LAB -[hidden]-> APP
+NUR -[hidden]-> APP
+DOC -[hidden]-> APP
+PHA -[hidden]-> APP
+
+' Flows
+PAT --> APP : Registration\nLogin\nAppointment
+APP --> PAT : Prescription\nLab Results\nMedications
+APP --> LAB : Prescription
+LAB --> APP : Lab Results
+NUR --> APP : Pre-Checkup
+APP --> DOC : Medical History
+DOC --> APP : Diagnosis\nPrescription
+APP --> PHA : Prescription
+PHA --> APP : Medications
+
+legend right
+== Legend ==
+Patient = Yellow
+Lab = Orange
+Nurse = Green
+Doctor = Blue
+Pharmacy = Pink
+Health Care App = Purple (ellipse for process)
+endlegend
+@enduml

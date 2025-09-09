@@ -1,0 +1,97 @@
+@startuml
+title Package Diagram — Health Care System (per-service colors)
+left to right direction
+skinparam componentStyle rectangle
+
+' ---------- SHARED / EDGE ----------
+package "Edge & Infra" as PKG_EDGE #ECEFF1 {
+  [API Gateway / BFF] as G #ECEFF1
+  [Message Broker] as MQ #ECEFF1
+  [Notification Service] as NOTIF #E8EAF6
+  cloud "Email/SMS Provider" as ESMS
+}
+
+' ---------- IDENTITY ----------
+package "Onboarding & Identity" as PKG_ID #E0F7FA {
+  [Auth Service] as AUTH #E0F7FA
+  database "User/Identity DB" as ID_DB #80DEEA
+}
+
+' ---------- PATIENT ----------
+package "Patient" as PKG_PAT #E8F5E9 {
+  [Patient Service] as PAT #E8F5E9
+  database "Patient DB" as PAT_DB #A5D6A7
+}
+
+' ---------- APPOINTMENTS ----------
+package "Appointments" as PKG_APPT #E3F2FD {
+  [Appointment Service] as APPT #E3F2FD
+  database "Appointment DB" as APPT_DB #90CAF9
+}
+
+' ---------- DIAGNOSTICS / ENCOUNTER ----------
+package "Encounter & Diagnostics" as PKG_DIAG #EDE7F6 {
+  [Encounter Service]  as ENC  #F1F8E9
+  [PreCheckup Service] as PRE  #FFFDE7
+  [History Service]    as HIST #F3E5F5
+  database "History DB" as HIST_DB #CE93D8
+}
+
+' ---------- PRESCRIPTION ----------
+package "Prescription" as PKG_RX #FFF3E0 {
+  [Prescription Service] as RX #FFF3E0
+  database "Rx DB" as RX_DB #FFCC80
+}
+
+' ---------- LAB ----------
+package "Lab" as PKG_LAB #E1F5FE {
+  [Lab Service] as LAB #E1F5FE
+  database "Lab DB" as LAB_DB #81D4FA
+  folder "Object Storage (Lab PDFs/Images)" as OBJ
+  cloud "External Lab Analyzer" as ANALYZER
+}
+
+' ---------- PHARMACY ----------
+package "Pharmacy" as PKG_PHARM #FBE9E7 {
+  [Pharmacy Service] as PHARM #FBE9E7
+  database "Pharmacy DB" as PHARM_DB #FFAB91
+}
+
+' ---------- INTERNAL LINKS (inside packages) ----------
+AUTH --> ID_DB
+PAT  --> PAT_DB
+APPT --> APPT_DB
+HIST --> HIST_DB
+RX   --> RX_DB
+LAB  --> LAB_DB
+LAB  --> OBJ
+NOTIF --> ESMS
+
+' ---------- PACKAGE-LEVEL DEPENDENCIES ----------
+' Edge routes into everything
+PKG_EDGE ..> PKG_ID   : register/login/verify
+PKG_EDGE ..> PKG_PAT  : profile APIs
+PKG_EDGE ..> PKG_APPT : schedule/check-in
+PKG_EDGE ..> PKG_DIAG : precheck/history/encounter
+PKG_EDGE ..> PKG_RX   : eRx APIs
+PKG_EDGE ..> PKG_LAB  : lab status/result view
+PKG_EDGE ..> PKG_PHARM: dispense tracking
+
+' Identity and patient master data used broadly
+PKG_ID   ..> PKG_PAT  : create/link patient
+PKG_APPT ..> PKG_PAT  : patient lookup
+PKG_DIAG ..> PKG_PAT  : patient context
+
+' Visit → Rx → Lab/Pharmacy chain
+PKG_DIAG ..> PKG_RX   : create prescription
+PKG_RX   ..> PKG_LAB  : create lab order
+PKG_RX   ..> PKG_PHARM: send e-prescription
+
+' Events & notifications (neutral infra)
+PKG_DIAG ..> PKG_EDGE : events via MQ
+PKG_LAB  ..> PKG_EDGE : result events via MQ
+PKG_RX   ..> PKG_EDGE : Rx events via MQ
+PKG_PHARM ..> PKG_EDGE: dispense events via MQ
+PKG_LAB  ..> PKG_LAB  : analyzer integration (ANALYZER)
+
+@enduml

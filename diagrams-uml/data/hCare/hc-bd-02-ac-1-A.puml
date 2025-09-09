@@ -1,0 +1,37 @@
+@startuml
+title Activity — Diagnostic (L2) 
+
+skinparam ArrowColor #6B7280
+skinparam activity {
+  StartColor #00B050
+  EndColor   #C00000
+  BackgroundColor #F7F9FB
+  BorderColor #36454F
+}
+skinparam ActivityDiamondBackgroundColor #FFF4CE
+skinparam ActivityDiamondBorderColor #9A6B00
+skinparam ActivityFontColor #111111
+
+start
+#E8F5E9:Check-in patient;
+#E8F5E9:Open Diagnosis;
+
+#E3F2FD:Capture vitals (Pre-Checkup);
+if (Abnormal vitals?) then (yes)
+  #FDEDED:Flag for attention;
+endif
+
+#E3F2FD:Fetch medical history;
+#E3F2FD:Review history;
+
+#E0F7FA:Perform examination;
+#E0F7FA:Formulate diagnosis;
+
+if (Lab tests needed?) then (yes)
+  #FFF4CE:Create lab order;
+endif
+
+#F3E5F5:Create prescription (meds, advice);
+#F3E5F5:Close Diagnosis;
+end
+@enduml

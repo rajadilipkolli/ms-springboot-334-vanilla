@@ -1,0 +1,60 @@
+@startuml
+title C4-1 Context — E-Commerce Platform
+left to right direction
+skinparam shadowing false
+skinparam defaultTextAlignment center
+skinparam ArrowColor #9AA0A6
+skinparam Rectangle {
+  RoundCorner 18
+  BorderColor #283238
+  FontColor #111111
+}
+
+' ---- dashed border for the scope container ----
+<style>
+frame {
+  LineStyle dashed
+  LineColor #9AA0A6
+  BackgroundColor #FFFFFF
+}
+</style>
+
+' ---------- PALETTE (reused across levels) ----------
+!define CORE_COLOR       #8E24AA
+!define GATEWAY_COLOR    #ECEFF1
+!define ACT_CUSTOMER     #F8BBD0
+!define ACT_ADMIN        #FFB74D
+
+' external systems (neutral)
+!define EXT_COLOR        #CFD8DC
+
+' ---------- Actors ----------
+rectangle "«person»\n**Customer**\n\nBrowses & buys" as ACT_C ACT_CUSTOMER
+rectangle "«person»\n**Ops/Admin**\n\nCatalog, orders" as ACT_A ACT_ADMIN
+
+' ---------- System in scope (use a FRAME, not inline line.dashed) ----------
+frame "System in scope\n[system]" as SCOPE #FFF8E1 {
+  rectangle "«in-scope»\n**E-Commerce Platform**\n(Web/Mobile + APIs)" as CORE #FFEE58
+}
+
+' ---------- External systems ----------
+rectangle "«external_system»\n**Payment Gateway**"         as PG #AED581
+rectangle "«external_system»\n**Email/SMS Provider**"      as ESMS #F8BBD0
+rectangle "«external_system»\n**Carrier Networks**"        as CARRIERS #E1BEE7
+rectangle "«external_system»\n**Identity Provider (SSO)**" as IDP #FFCDD2
+rectangle "«external_system»\n**Analytics / BI**"          as ANALYTICS #D7CCC8
+
+' ---------- Flows ----------
+ACT_C --> CORE : Register, login, browse,\nsearch, checkout
+ACT_A --> CORE : Admin ops
+CORE --> PG : Authorize/Capture
+CORE --> ESMS : Order/status messages
+CORE --> CARRIERS : Shipment status
+CORE --> IDP : SSO/OIDC
+CORE --> ANALYTICS : Events/exports
+
+legend right
+== Palette ==
+Customer #F8BBD0, Admin #CFD8DC, Core #8E24AA.
+endlegend
+@enduml

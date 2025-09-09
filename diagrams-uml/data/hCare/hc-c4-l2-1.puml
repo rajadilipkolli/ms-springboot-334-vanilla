@@ -1,0 +1,74 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+LAYOUT_LEFT_RIGHT()
+
+' ---- Styles (keep the same colors you asked for) ----
+AddElementTag("patient",  $bgColor="#FFD54F", $fontColor="#000000", $borderColor="#C6A700")
+AddElementTag("nurse",    $bgColor="#81C784", $fontColor="#000000", $borderColor="#388E3C")
+AddElementTag("doctor",   $bgColor="#64B5F6", $fontColor="#000000", $borderColor="#1E88E5")
+AddElementTag("lab-ext",  $bgColor="#FF7043", $fontColor="#000000", $borderColor="#D84315")
+AddElementTag("pharma-ext",$bgColor="#F06292", $fontColor="#000000", $borderColor="#C2185B")
+AddElementTag("in-scope", $bgColor="#9C27B0", $fontColor="#FFFFFF", $borderColor="#6A1B9A")
+
+' ---- People ----
+Person(patient, "Patient", "Registers, books, views results & prescriptions", $tags="patient")
+Person(nurse, "Nurse", "Captures pre-checkup data", $tags="nurse")
+Person(doctor, "Doctor", "Reviews history, diagnoses, prescribes", $tags="doctor")
+
+' ---- External Systems ----
+System_Ext(labSys, "Lab Information System", "External lab partner", $tags="lab-ext")
+System_Ext(pharmaSys, "Pharmacy System", "External dispenser", $tags="pharma-ext")
+System_Ext(idp, "Identity Provider (OIDC)", "Auth/Access authority")
+
+' ---- System in scope ----
+System_Boundary(hc, "Health Care App") {
+
+  Container(web, "Patient Portal (Web/Mobile)", "SPA/Native", "Registration, appointments, results, Rx", $tags="in-scope")
+  Container(clin, "Clinician Portal (Web)", "Web", "Nurse/Doctor UI for pre-check, history, diagnosis", $tags="in-scope")
+  Container(bff, "API Gateway / BFF", "Edge API", "Routes UI requests; aggregates", $tags="in-scope")
+
+  Container(auth, "Auth Service", "Service", "JWT issuance/validation; integrates with IdP", $tags="in-scope")
+
+  Container(onboard, "Onboarding Service", "Service", "Registration & profile", $tags="in-scope")
+  Container(appSvc, "Appointment Service", "Service", "Manage appointments", $tags="in-scope")
+  Container(diagSvc, "Diagnosis Service", "Service", "Pre-checkup, medical history, diagnosis & eRx", $tags="in-scope")
+  Container(labInt, "Lab Integration Service", "Service", "Order tests & fetch results", $tags="in-scope")
+  Container(pharmInt, "Pharmacy Integration Service", "Service", "Send eRx & track fulfillment", $tags="in-scope")
+
+  ContainerDb(patientDb, "Patient DB", "Relational", "Patient profiles", $tags="in-scope")
+  ContainerDb(authDb, "Auth/Access DB", "Relational/Key-Value", "Accounts/roles/consent", $tags="in-scope")
+  ContainerDb(apptDb, "Appointment DB", "Relational", "Appointments & status", $tags="in-scope")
+  ContainerDb(diagDb, "Diagnosis DB", "Relational", "Diagnoses & prescriptions", $tags="in-scope")
+  ContainerDb(labStore, "Lab Store", "Relational/Object", "Orders & results cache", $tags="in-scope")
+  ContainerDb(pharmStore, "Pharmacy Store", "Relational", "eRx & fulfillment status", $tags="in-scope")
+}
+
+' ---- Relationships (mirroring your DFD flows) ----
+Rel(patient, web, "Use")
+Rel(nurse, clin, "Use")
+Rel(doctor, clin, "Use")
+
+Rel(web, bff, "HTTPS/JSON")
+Rel(clin, bff, "HTTPS/JSON")
+
+Rel(bff, auth, "Token exchange/validation")
+Rel(auth, idp, "OIDC/OAuth2")
+
+Rel(bff, onboard, "Register/login/profile")
+Rel(bff, appSvc, "Create/search appointments")
+Rel(bff, diagSvc, "Pre-check, history, diagnosis, eRx")
+
+Rel(onboard, patientDb, "CRUD")
+Rel(auth, authDb, "CRUD")
+Rel(appSvc, apptDb, "CRUD")
+Rel(diagSvc, diagDb, "CRUD")
+
+Rel(diagSvc, labInt, "Create lab orders / get results")
+Rel(diagSvc, pharmInt, "Send eRx / check status")
+
+Rel(labInt, labStore, "Persist orders/results")
+Rel(pharmInt, pharmStore, "Persist eRx/status")
+
+Rel(labInt, labSys, "Order tests / pull results (HTTPS)")
+Rel(pharmInt, pharmaSys, "Send eRx / fulfillment status (HTTPS)")
+@enduml

@@ -1,0 +1,66 @@
+@startuml
+title Sequence — Shipping Adapter with Rate-Limit & Circuit-Breaker Fallback
+autonumber
+participant "Order Service" as ORDER  #FFF3E0
+participant "Shipping Service" as SHIP #E0F2F1
+participant "Carrier Router/Adapter" as ADAPTER #E0F2F1
+participant "RateLimiter" as RL #ECEFF1
+participant "CB(DHL)" as CB_DHL #ECEFF1
+participant "CB(FedEx)" as CB_FDX #ECEFF1
+participant "DHL Adapter" as AD_DHL #E0F2F1
+participant "FedEx Adapter" as AD_FDX #E0F2F1
+actor "DHL API" as DHL #CFD8DC
+actor "FedEx API" as FDX #CFD8DC
+participant "Kafka (Event Bus)" as KAFKA #ECEFF1
+
+ORDER -> SHIP: onOrderPaid(orderId, toAddress, prefs)
+SHIP  -> ADAPTER: createShipment(orderId, toAddress, prefs)
+
+ADAPTER -> RL: tryAcquire("DHL")
+alt Rate limited (DHL)
+  ADAPTER -> RL: tryAcquire("FedEx")
+  alt Rate limited (FedEx too)
+    ADAPTER --> SHIP: error(rate_limited)
+    SHIP -> KAFKA: publish shipping.deferred{orderId, reason="rate_limit"}
+  else FedEx allowed
+    ' fall through to FedEx path below
+  end
+else Allowed (DHL)
+  ADAPTER -> CB_DHL: state()
+  alt CB OPEN (DHL unhealthy)
+    ' fallback to FedEx
+  else CB CLOSED or HALF-OPEN
+    ADAPTER -> AD_DHL: create(orderId, toAddress)  ' idempotencyKey=orderId
+    AD_DHL -> DHL: POST /shipments (Idempotency-Key: orderId)
+    alt DHL success
+      DHL --> AD_DHL: 201 {tracking, labelUrl}
+      AD_DHL --> ADAPTER: tracking, labelUrl
+      ADAPTER --> SHIP: shipmentId, carrier="DHL"
+      SHIP -> KAFKA: publish shipment.created{orderId, carrier="DHL", tracking}
+    else DHL fails (5xx/timeout)
+      ADAPTER -> CB_DHL: recordFailure()
+      ' try fallback carrier
+    end
+  end
+end
+
+' --- fallback to FedEx when needed ---
+ADAPTER -> CB_FDX: state()
+alt CB OPEN (FedEx unhealthy)
+  ADAPTER --> SHIP: error(no_carrier_available)
+  SHIP -> KAFKA: publish shipping.failed{orderId, reason="all_carriers_unavailable"}
+else CB CLOSED or HALF-OPEN
+  ADAPTER -> AD_FDX: create(orderId, toAddress)  ' idempotencyKey=orderId
+  AD_FDX -> FDX: POST /shipments (Idempotency-Key: orderId)
+  alt FedEx success
+    FDX --> AD_FDX: 201 {tracking, labelUrl}
+    AD_FDX --> ADAPTER: tracking, labelUrl
+    ADAPTER --> SHIP: shipmentId, carrier="FedEx"
+    SHIP -> KAFKA: publish shipment.created{orderId, carrier="FedEx", tracking}
+  else FedEx fails
+    ADAPTER -> CB_FDX: recordFailure()
+    ADAPTER --> SHIP: error(no_carrier_available)
+    SHIP -> KAFKA: publish shipping.failed{orderId, reason="fallback_failed"}
+  end
+end
+@enduml

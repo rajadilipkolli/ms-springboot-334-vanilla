@@ -1,0 +1,47 @@
+@startuml
+left to right direction
+actor Patient as P #D32F2F
+actor Nurse as N #FDD835
+actor Doctor as D #1976D2
+actor "Lab" as L #9C27B0
+actor "Pharmacy" as Ph #388E3C
+
+rectangle "Health Care App"  #FAFAFA {
+  usecase "Register / Login" as UC1 #AED581       
+  usecase "Manage Profile"   as UC2 #81C784       
+  usecase "Book Appointment" as UC3 #9CCC65       
+  usecase "Pre-Checkup"      as UC4 #B3E5FC
+  usecase "Provide Medical History" as UC5 #B2DFDB
+  usecase "Consult Doctor"   as UC6 #90CAF9
+  usecase "Get Prescription" as UC7 #B2DFDB
+  usecase "Give Sample"      as UC8 #F06292
+  usecase "View Lab Results" as UC9 #F8BBD0
+  usecase "Obtain Medications" as UC10 #90CAF9
+}
+P --> UC1
+P --> UC2
+P --> UC3
+P --> UC4
+P --> UC5
+P --> UC6
+P --> UC7
+P --> UC8
+P --> UC9
+P --> UC10
+
+N --> UC4
+D --> UC6
+D --> UC7
+L --> UC8
+L --> UC9
+Ph --> UC10
+
+' Logical includes driven by your DFD arrows
+UC6 .> UC4 : <<include>>
+UC6 .> UC5 : <<include>>
+UC7 .> UC6 : <<include>>
+UC9 .> UC8 : <<include>>
+UC10 .> UC7 : <<include>>
+@enduml
+
+

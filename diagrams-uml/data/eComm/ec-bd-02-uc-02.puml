@@ -1,0 +1,45 @@
+@startuml
+title Use Cases — Order & Payment (Microservices + Kafka)
+left to right direction
+skinparam packageStyle rectangle
+
+actor Customer        as ACT_C
+actor "Payment Gateway" as ACT_PG
+
+rectangle "Kafka (Event Bus)" as KAFKA <<queue>> #ECEFF1
+
+package "Order" #FFF3E0 {
+  usecase "Place Order" as UC_PLACE
+  usecase "Cancel Order" as UC_CANCEL
+  usecase "Track Order" as UC_TRACK
+  usecase "Compute Totals (tax/shipping)" as UC_TOTALS
+}
+
+package "Payment" #FBE9E7 {
+  usecase "Authorize Payment" as UC_AUTH
+  usecase "Payment Callback/Webhook" as UC_CB
+  usecase "Capture Payment" as UC_CAPTURE
+  usecase "Refund Payment" as UC_REFUND
+}
+
+' Main flows
+ACT_C --> UC_PLACE
+UC_PLACE ..> UC_TOTALS : <<include>>
+UC_PLACE .. KAFKA : publish order.placed
+ACT_C --> UC_CANCEL
+UC_CANCEL .. KAFKA : publish order.cancelled
+ACT_C --> UC_TRACK
+
+' Payment interactions
+ACT_C --> UC_AUTH
+UC_AUTH --> ACT_PG : redirect / API
+ACT_PG --> UC_CB : success/failure callback
+UC_CB .. KAFKA : publish payment.authorized / payment.failed
+
+UC_CAPTURE .. KAFKA : publish payment.captured
+UC_REFUND  .. KAFKA : publish payment.refunded
+
+' Order reacts to payment (subscription hint)
+KAFKA .. UC_PLACE : subscribe order.paid (from capture)
+@enduml
+

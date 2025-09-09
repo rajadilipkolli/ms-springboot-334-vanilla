@@ -1,0 +1,34 @@
+@startuml
+title Sequence — Payment Authorization → Callback → Capture
+autonumber
+actor Customer as C
+actor "Payment Gateway" as PG
+participant "API Gateway/BFF" as G #ECEFF1
+participant "Payment Service" as PAY #FBE9E7
+participant "Order Service" as ORDER #FFF3E0
+participant "Kafka (Event Bus)" as KAFKA #ECEFF1
+
+' Customer was redirected here from Checkout flow
+C -> PG: authorize payment (card/upi/etc)
+alt Authorization OK
+  PG -> PAY: callback(orderId, status=AUTHORIZED, paymentId)
+  PAY -> KAFKA: publish [topic=payment.authorized, {orderId, paymentId, ts}]
+  KAFKA -> ORDER: event: payment.authorized
+  ORDER -> ORDER: mark Authorized
+  ' capture (synchronous example)
+  ORDER -> PAY: capture(paymentId, amount)
+  PAY -> KAFKA: publish [topic=payment.captured, {orderId, paymentId, ts}]
+  KAFKA -> ORDER: event: payment.captured
+  ORDER -> ORDER: mark Paid
+  ORDER -> KAFKA: publish [topic=order.paid, {orderId, ts}]
+else Authorization Failed
+  PG -> PAY: callback(orderId, status=FAILED, reason)
+  PAY -> KAFKA: publish [topic=payment.failed, {orderId, reason, ts}]
+  KAFKA -> ORDER: event: payment.failed
+  ORDER -> ORDER: mark PaymentFailed
+end
+
+' optional UI update
+PAY --> G: ack
+G --> C: payment status page
+@enduml

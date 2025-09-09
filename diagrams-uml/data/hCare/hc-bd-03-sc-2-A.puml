@@ -1,0 +1,9 @@
+@startuml
+title State Chart — Diagnostic Encounter (3.0)
+[*] #Green --> PreCheckup #81C784
+PreCheckup --> HistoryReview #FFD54F : vitals captured
+HistoryReview --> Diagnosis #F48FB1 : history assessed
+Diagnosis --> Prescribing #90CAF9 : medication/test orders created
+Prescribing --> Closed #EF9A9A : notes finalized
+Closed --> [*] #Red
+@enduml

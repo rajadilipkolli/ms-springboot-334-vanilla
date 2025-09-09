@@ -1,0 +1,86 @@
+@startuml
+title C4-4 Code — Order Domain (matches Order color)
+left to right direction
+skinparam class {
+  BackgroundColor #FFF3E0
+  BorderColor #283238
+  FontColor #111111
+}
+skinparam ArrowColor #9AA0A6
+
+class Order {
+  +orderId: UUID
+  +customerId: UUID
+  +status: OrderStatus
+  +lines: List<OrderLine>
+  +total: Money
+  +markAuthorized()
+  +markPaid()
+  +markCancelled(reason)
+}
+
+class OrderLine {
+  +sku: String
+  +name: String
+  +qty: int
+  +price: Money
+  +lineTotal(): Money
+}
+
+class Money {
+  +amount: decimal
+  +currency: String
+}
+
+' ✅ Stereotype AFTER the class name (portable across servers)
+class OrderStatus <<enumeration>> {
+  Placed
+  Authorized
+  Paid
+  Cancelled
+}
+
+interface OrderRepository {
+  +save(o: Order)
+  +findById(id: UUID): Order
+}
+
+class OutboxRecord #FFCC80 {
+  +id: UUID
+  +topic: String
+  +key: String
+  +payload: JSON
+  +createdAt: DateTime
+  +sentAt: DateTime?
+}
+
+interface KafkaPublisher {
+  +publish(topic, key, payload)
+}
+
+interface PaymentClient {
+  +authorize(orderId: UUID, amount: Money)
+  +capture(paymentId: String, amount: Money)
+}
+
+interface InventoryClient {
+  +reserve(orderId: UUID, lines: List<OrderLine>)
+  +release(orderId: UUID)
+}
+
+class OrderApplicationService {
+  +placeOrder(cartSnapshot)
+  +handlePaymentEvent(event)
+}
+
+Order "1" o-- "*" OrderLine
+OrderRepository <|.. OrderApplicationService
+KafkaPublisher  <|.. OrderApplicationService
+PaymentClient   <|.. OrderApplicationService
+InventoryClient <|.. OrderApplicationService
+OrderApplicationService --> Order
+OrderApplicationService --> OrderRepository
+OrderApplicationService --> KafkaPublisher
+OrderApplicationService --> PaymentClient
+OrderApplicationService --> InventoryClient
+@enduml

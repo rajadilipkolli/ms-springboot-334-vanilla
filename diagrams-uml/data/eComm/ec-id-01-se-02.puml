@@ -1,0 +1,26 @@
+@startuml
+title Sequence — Checkout → Place Order
+autonumber
+actor Customer as C
+participant "API Gateway/BFF" as G #ECEFF1
+participant "Shopping Cart" as CART #FFFDE7
+participant "Order Service" as ORDER #FFF3E0
+participant "Payment Service" as PAY #FBE9E7
+participant "Kafka (Event Bus)" as KAFKA #ECEFF1
+
+C -> G: Checkout()
+G -> CART: validateCart(cartId)
+CART --> G: ok + cartSnapshot
+
+G -> ORDER: placeOrder(cartSnapshot)
+ORDER -> ORDER: computeTotals(tax, shipping)
+ORDER --> G: orderId, status=Placed
+
+G -> KAFKA: publish [topic=cart.checked_out, {cartId, orderId, ts}]
+G -> KAFKA: publish [topic=order.placed, {orderId, amount, ts}]
+
+' kick off payment (separate diagram covers the callback)
+G -> PAY: requestAuthorization(orderId, amount, customer)
+PAY --> G: paymentSessionUrl
+G --> C: redirect to Payment Gateway
+@enduml

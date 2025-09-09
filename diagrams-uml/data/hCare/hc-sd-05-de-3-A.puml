@@ -1,0 +1,91 @@
+@startuml
+title Deployment — Multi-AZ / DR (Active-Active)
+left to right direction
+skinparam componentStyle rectangle
+
+cloud "Internet/CDN/WAF" as NET
+rectangle "Global API Gateway / DNS" as G #ECEFF1
+
+' === Region A ===
+node "Region A: ap-south-1" {
+  node "Kubernetes Cluster A" {
+    node "Namespace healthcare" {
+      component "Auth"  as AUTH_A   #E0F7FA
+      component "Patient" as PAT_A  #E8F5E9
+      component "Appt"  as APPT_A   #E3F2FD
+      component "Encounter" as ENC_A#F1F8E9
+      component "History" as HIST_A #F3E5F5
+      component "Diagnostic" as DIAG_A #EDE7F6
+      component "Rx"     as RX_A    #FFF3E0
+      component "Lab"    as LAB_A   #E1F5FE
+      component "Pharm"  as PHARM_A #FBE9E7
+      component "Notif"  as NOTIF_A #E8EAF6
+      component "Message Broker A" as MQ_A <<queue>> #ECEFF1
+    }
+  }
+  database "ID DB A"        as ID_DB_A    #80DEEA
+  database "Patient DB A"   as PAT_DB_A   #A5D6A7
+  database "Appt DB A"      as APPT_DB_A  #90CAF9
+  database "Encounter DB A" as ENC_DB_A   #C5E1A5
+  database "History DB A"   as HIST_DB_A  #CE93D8
+  database "Rx DB A"        as RX_DB_A    #FFCC80
+  database "Lab DB A"       as LAB_DB_A   #81D4FA
+  database "Pharmacy DB A"  as PHARM_DB_A #FFAB91
+}
+
+' === Region B ===
+node "Region B: ap-south-2" {
+  node "Kubernetes Cluster B" {
+    node "Namespace healthcare" {
+      component "Auth"  as AUTH_B   #E0F7FA
+      component "Patient" as PAT_B  #E8F5E9
+      component "Appt"  as APPT_B   #E3F2FD
+      component "Encounter" as ENC_B#F1F8E9
+      component "History" as HIST_B #F3E5F5
+      component "Diagnostic" as DIAG_B #EDE7F6
+      component "Rx"     as RX_B    #FFF3E0
+      component "Lab"    as LAB_B   #E1F5FE
+      component "Pharm"  as PHARM_B #FBE9E7
+      component "Notif"  as NOTIF_B #E8EAF6
+      component "Message Broker B" as MQ_B <<queue>> #ECEFF1
+    }
+  }
+  database "ID DB B"        as ID_DB_B    #80DEEA
+  database "Patient DB B"   as PAT_DB_B   #A5D6A7
+  database "Appt DB B"      as APPT_DB_B  #90CAF9
+  database "Encounter DB B" as ENC_DB_B   #C5E1A5
+  database "History DB B"   as HIST_DB_B  #CE93D8
+  database "Rx DB B"        as RX_DB_B    #FFCC80
+  database "Lab DB B"       as LAB_DB_B   #81D4FA
+  database "Pharmacy DB B"  as PHARM_DB_B #FFAB91
+}
+
+' Client entry + routing
+NET --> G
+G --> AUTH_A
+G --> AUTH_B
+G --> PAT_A
+G --> PAT_B
+G --> APPT_A
+G --> APPT_B
+G --> RX_A
+G --> RX_B
+G --> LAB_A
+G --> LAB_B
+G --> PHARM_A
+G --> PHARM_B
+G --> NOTIF_A
+G --> NOTIF_B
+
+' Replication (illustrative)
+ID_DB_A <..> ID_DB_B : async replication
+PAT_DB_A <..> PAT_DB_B
+APPT_DB_A <..> APPT_DB_B
+ENC_DB_A <..> ENC_DB_B
+HIST_DB_A <..> HIST_DB_B
+RX_DB_A  <..> RX_DB_B
+LAB_DB_A <..> LAB_DB_B
+PHARM_DB_A <..> PHARM_DB_B
+
+MQ_A <..> MQ_B : cross-region topics
+@enduml

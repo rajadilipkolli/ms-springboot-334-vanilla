@@ -1,0 +1,69 @@
+@startuml
+title Composite Structure — Diagnostics (emulated in PlantUML)
+left to right direction
+skinparam componentStyle rectangle
+
+' --- Actors / Edge (optional context) ---
+actor Patient as P_ACT #F8BBD0
+actor Doctor  as D_ACT #42A5F5
+actor Nurse   as N_ACT #FFB74D
+[Mobile/Web App] as APP
+[API Gateway / BFF] as G #ECEFF1
+P_ACT --> APP
+D_ACT --> APP
+N_ACT --> APP
+APP --> G
+
+' --- External interfaces drawn as ports (lollipops) ---
+() "Clinical API"        as IClin
+() "Events"              as IEvents
+() "History Read"        as IHist
+() "Prescription Write"  as IRx
+
+' --- The composite classifier (container) with internal parts ---
+package "Encounter (Composite)" as ENC_COMP #F1F8E9 {
+  [Encounter Orchestrator] as ENC  #F1F8E9
+  [PreCheckup Handler]     as PRE  #FFFDE7
+  [History Accessor]       as HIST #F3E5F5
+  [Diagnostic Engine]      as DIAG #EDE7F6
+  [Prescription Orchestrator] as RX #FFF3E0
+
+  ' Internal wiring (roles indicate part-to-part collaboration)
+  ENC --> PRE  : collectVitals()
+  ENC --> HIST : fetchHistory()
+  ENC --> DIAG : analyze()
+  DIAG --> RX  : createPrescription()
+}
+
+' --- Data stores and infra using darker shade / neutral ---
+database "History DB" as HIST_DB #CE93D8
+database "Rx DB"      as RX_DB   #FFCC80
+[Message Broker]      as MQ <<queue>> #ECEFF1
+
+' --- Ports bound to the composite boundary (approximation) ---
+G -- IClin
+IClin -- ENC : <<requires>>
+ENC  -- IEvents : <<provides>>
+
+HIST -- IHist : <<provides>>
+IHist -- G     : <<consumed-by>>
+
+RX -- IRx      : <<provides>>
+IRx -- G       : <<consumed-by>>
+
+' --- External resources
+HIST --> HIST_DB
+RX   --> RX_DB
+RX   ..> MQ : PrescriptionCreated
+
+'legend right
+'  == Color Key ==
+'  Actors: Patient #F8BBD0 • Doctor #42A5F5 • Nurse #FFB74D
+'  Encounter (composite) #F1F8E9
+'  PreCheckup #FFFDE7
+'  History #F3E5F5 → History DB #CE93D8
+'  Diagnostic #EDE7F6
+'  Prescription #FFF3E0 → Rx DB #FFCC80
+'  Neutral infra (Gateway, MQ) #ECEFF1
+'endlegend
+@enduml

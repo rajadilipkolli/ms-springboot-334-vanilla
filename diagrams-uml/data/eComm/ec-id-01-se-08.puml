@@ -1,0 +1,37 @@
+@startuml
+title Sequence — Paid → Shipment → Delivered
+autonumber
+participant "Order Service" as ORDER #FFF3E0
+participant "Shipping Service" as SHIP #E0F2F1
+participant "Inventory Service" as INV #E6F4EA
+actor "Carrier" as CARRIER
+participant "Kafka (Event Bus)" as KAFKA #ECEFF1
+
+' Payment captured in prior flow
+KAFKA -> ORDER: event payment.captured(orderId, paymentId)
+ORDER -> ORDER: mark Paid
+ORDER -> KAFKA: publish [order.paid {orderId, ts}]
+
+' Shipping creates shipment on order.paid
+KAFKA -> SHIP: event order.paid(orderId)
+SHIP -> SHIP: createShipment(orderId)\n(idempotencyKey=orderId)
+alt Shipment created
+  SHIP -> KAFKA: publish [shipment.created {orderId, shipmentId}]
+  ' Carrier lifecycle (webhooks/polls)
+  CARRIER -> SHIP: picked(shipmentId)
+  SHIP -> KAFKA: publish [shipment.picked {orderId, shipmentId}]
+  CARRIER -> SHIP: shipped(shipmentId)
+  SHIP -> KAFKA: publish [shipment.shipped {orderId, shipmentId}]
+  CARRIER -> SHIP: delivered(shipmentId)
+  SHIP -> KAFKA: publish [shipment.delivered {orderId, shipmentId, ts}]
+  KAFKA -> ORDER: event shipment.delivered
+  ORDER -> ORDER: mark Fulfilled
+else Shipment creation failed
+  SHIP -> KAFKA: publish [shipping.failed {orderId, reason}]
+  KAFKA -> ORDER: event shipping.failed
+  ORDER -> ORDER: mark FulfillmentFailed\n(consider refund/cs)
+  ' Optionally release reservation if no shipment
+  ORDER -> KAFKA: publish [order.cancelled {orderId, reason="ship_failed"}]
+  KAFKA -> INV: event order.cancelled
+end
+@enduml

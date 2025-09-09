@@ -1,0 +1,40 @@
+@startuml
+title Sequence Diagram — Appointment to Prescription
+
+actor Patient as P #CE93D8
+actor Doctor as D #2196F3
+participant "Patient App" as App #64B5F6
+participant "Appointment Service" as Appt #FFE082
+participant "Diagnosis Service" as Diag #81D4FA
+participant "PreCheckup Service" as Pre #E1BEE7
+participant "History Service" as Hist #C8E6C9
+participant "Prescription Service" as Rx #E1BEE7
+
+autonumber
+
+P -> App: request appointment (doctor, slot)
+App -> Appt: requestAppointment(patient, doctor, slot)
+Appt --> App: status=Requested
+
+Appt -> D: notifyRequest()
+D -> Appt: confirm(slot)
+Appt --> App: status=Confirmed
+
+P -> App: checkIn(appointmentId)
+App -> Appt: checkIn()
+Appt -> Diag: openDiagnosis(appointmentId)
+Diag --> Appt: diagnosisId
+Appt --> App: status=CheckedIn
+
+' L2: Diagnostic
+P -> Pre: provideVitals()
+Pre --> Diag: attachPreCheckup(encounterId)
+
+Diag -> Hist: getMedicalHistory(patientId)
+Hist --> Diag: history[]
+
+D -> Diag: recordDiagnosis(...)
+Diag -> Rx: createPrescription(diagnoses, meds)
+Rx --> Diag: prescriptionId
+Diag --> App: visitSummary(prescriptionId)
+@enduml

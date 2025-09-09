@@ -1,0 +1,36 @@
+@startuml
+title Sequence — Order Placed → Inventory Reserve Saga
+autonumber
+actor Customer as C
+participant "API Gateway/BFF" as G #ECEFF1
+participant "Order Service" as ORDER #FFF3E0
+participant "Inventory Service" as INV #E6F4EA
+participant "Kafka (Event Bus)" as KAFKA #ECEFF1
+
+' Place order (from prior flow)
+C -> G: placeOrder(cart)
+G -> ORDER: placeOrder(cartSnapshot)
+ORDER --> G: orderId, status=Placed
+G -> C: confirmation
+
+' Order publishes via outbox → Kafka (see Diagram 10)
+ORDER -> KAFKA: publish [order.placed {orderId, lines, ts}]
+
+' Inventory subscribes and reserves stock
+KAFKA -> INV: event order.placed(orderId, lines) [key=orderId]
+INV -> INV: idempotentReserve(orderId)\n(dedupe by orderId)
+alt All items available
+  INV -> KAFKA: publish [inventory.reserved {orderId, reservationId, ts}]
+  KAFKA -> ORDER: event inventory.reserved
+  ORDER -> ORDER: mark Reserved\n(next: start payment)
+else Some items unavailable
+  INV -> KAFKA: publish [inventory.rejected {orderId, reason, ts}]
+  KAFKA -> ORDER: event inventory.rejected
+  ORDER -> ORDER: mark Cancelled
+  ORDER -> KAFKA: publish [order.cancelled {orderId, reason, ts}]
+end
+
+' If later cancelled: release inventory
+KAFKA -> INV: event order.cancelled(orderId)
+INV -> KAFKA: publish [inventory.released {orderId, reservationId}]
+@enduml
