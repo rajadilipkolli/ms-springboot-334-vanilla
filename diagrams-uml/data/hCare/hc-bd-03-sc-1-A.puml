@@ -1,0 +1,15 @@
+@startuml
+title State Chart — Doctors Appointment
+[*] #Green --> Requested #C8E6C9
+Requested --> Confirmed : slot assigned
+Requested --> Cancelled #EF9A9A : patient/clinic cancel
+Confirmed #FFEB3B --> CheckedIn #FFCC80 : patient arrives
+CheckedIn --> InConsult #E1BEE7 : clinician starts encounter
+InConsult --> Completed : consultation finished
+Confirmed --> NoShow #EF9A9A : did not arrive
+Confirmed --> Rescheduled #C5E1A5 : new slot issued
+Cancelled --> [*]
+Completed #LightBlue --> [*] #F44336 
+NoShow --> [*]
+Rescheduled --> Confirmed
+@enduml

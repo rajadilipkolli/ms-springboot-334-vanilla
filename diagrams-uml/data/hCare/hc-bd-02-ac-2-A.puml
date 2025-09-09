@@ -1,0 +1,42 @@
+@startuml
+title Activity — Lab 
+
+skinparam ArrowColor #6B7280
+skinparam activity {
+  StartColor #00B050
+  EndColor   #C00000
+  BackgroundColor #F7F9FB
+  BorderColor #36454F
+}
+skinparam ActivityDiamondBackgroundColor #FFF4CE
+skinparam ActivityDiamondBorderColor #9A6B00
+skinparam ActivityFontColor #111111
+
+start
+#E8F5E9:Receive lab order;
+#E8F5E9:Schedule sample collection;
+
+if (Home collection?) then (yes)
+  #FFF4CE:Dispatch phlebotomist;
+else (walk-in)
+  #FFF4CE:Await patient at lab;
+endif
+
+#E0F7FA:Collect sample;
+#E0F7FA:Log sample;
+#E0F7FA:Start analysis;
+
+repeat
+  #E3F2FD:Run test / QC;
+backward:#FFF4CE More tests?;
+repeat while (more panels?)
+
+#F3E5F5:Validate results;
+if (Abnormal critical?) then (yes)
+  #FDEDED:Escalate to clinician;
+endif
+
+#E8F5E9:Publish result to repo;
+#E8F5E9:Notify patient & doctor;
+end
+@enduml

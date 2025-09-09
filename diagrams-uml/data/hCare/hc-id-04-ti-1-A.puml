@@ -1,0 +1,53 @@
+@startuml
+title Timing — Check-in → Diagnosis → Lab Result Published
+
+concise "Patient App" as PApp
+concise "Encounter"   as Enc
+concise "LabOrder"    as Lab
+concise "Doctor"      as Doc
+concise "Notification" as Notif
+
+@0
+PApp is Waiting #ECEFF1
+Doc  is Available #42A5F5
+Enc  is Open #F1F8E9
+Lab  is None #E1F5FE
+Notif is Idle #E8EAF6
+
+@5
+PApp is CheckedIn #ECEFF1
+Enc  is PreCheckup #FFFDE7
+
+@8
+Enc  is HistoryReview #F3E5F5
+
+@12
+Enc  is Diagnosis #EDE7F6
+Doc  is InConsult #42A5F5
+
+@15
+Enc  is Prescribing #FFF3E0
+Lab  is Ordered #E1F5FE
+
+@20
+Lab  is SampleCollected #E1F5FE
+
+@30
+Lab  is Processing #E1F5FE
+
+@40
+Lab  is ResultReady #E1F5FE
+
+@42
+Notif is Sending #E8EAF6
+
+@43
+Lab  is Published #E1F5FE
+Notif is Sent #E8EAF6
+PApp is Notified #ECEFF1
+Doc  is Reviewing #42A5F5
+
+@48
+Enc  is Closed #F1F8E9
+Doc  is Available #42A5F5
+@enduml

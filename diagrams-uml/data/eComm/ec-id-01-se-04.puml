@@ -1,0 +1,28 @@
+@startuml
+title Sequence — Cancel Order (Pre- vs Post-Capture)
+autonumber
+actor Customer as C
+participant "API Gateway/BFF" as G #ECEFF1
+participant "Order Service" as ORDER #FFF3E0
+participant "Payment Service" as PAY #FBE9E7
+participant "Kafka (Event Bus)" as KAFKA #ECEFF1
+
+C -> G: CancelOrder(orderId, reason)
+G -> ORDER: requestCancel(orderId, reason)
+ORDER -> ORDER: load(orderId)\ncheck status & fulfillment
+
+alt Not Paid (Placed / Authorized, not captured)
+  ' (if Authorized, Order may internally void auth with Payment)
+  ORDER -> ORDER: mark Cancelled
+  ORDER -> KAFKA: publish [topic=order.cancelled,\n {orderId, reason, ts}]
+else Paid (Captured already)
+  ORDER -> PAY: refund(paymentId, amount)
+  PAY -> KAFKA: publish [topic=payment.refunded,\n {orderId, paymentId, amount, ts}]
+  KAFKA -> ORDER: event payment.refunded
+  ORDER -> ORDER: mark Cancelled
+  ORDER -> KAFKA: publish [topic=order.cancelled,\n {orderId, reason, ts}]
+end
+
+ORDER --> G: cancelAck(status)
+G --> C: cancel status
+@enduml

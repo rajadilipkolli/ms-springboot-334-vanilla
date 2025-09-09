@@ -9,6 +9,7 @@
 1. Java 23 (Minimum Requirement: Java 21)
 2. SpringBoot 3.5.4 (July 24, 2025)
 3. Jakarta EE 10 
+4. Axon 5 Framework (For Event Sourcing & CQRS)
 
 Cloud-native (or microservice) architecture is an approach to application design in which software is 
 broken down into small, independent services that communicate through lightweight APIs, enabling 
@@ -128,16 +129,16 @@ for more details on this topic.
 8. Java 23, SpringBoot 3.4.1: Tracing: OpenTelemetry Zero Code— Part 8 Coming Soon
 9. [Java 23, SpringBoot 3.4.1: Containers: Alpine Multi-Architecture — Part 9](https://arafkarsh.medium.com/java-23-springboot-3-4-1-multi-architecture-containers-part-9-b8c70ed3842f)
 10. [Java 23, SpringBoot 3.4.1: Containers: Kubernetes — Part 10](https://arafkarsh.medium.com/java-23-springboot-3-4-1-kubernetes-containers-part-10-1b3b3b3b1b1b)
-11. Java 23, SpringBoot 3.4.1: Filters: Security, Log — Part 11 Coming Soon
-12. Java 23, SpringBoot 3.4.1: AOP: Spring Security — Part 12 Coming Soon
-13. Java 23, SpringBoot 3.4.1: Security: JSON Web Token — Part 13 Coming Soon
-14. Java 23, SpringBoot 3.4.1: CRUD : Domain Driven Design — Part 14 Coming Soon
-15. Java 23, SpringBoot 3.4.1: CRUD Queries & Page Sort — Part 15 Coming Soon
+11. Java 23, SpringBoot 3.5.4: Filters: Security, Log — Part 11 Coming Soon
+12. Java 23, SpringBoot 3.5.4: AOP: Spring Security — Part 12 Coming Soon
+13. Java 23, SpringBoot 3.5.4: Security: JSON Web Token — Part 13 Coming Soon
+14. Java 23, SpringBoot 3.5.4: CRUD : Domain Driven Design — Part 14 Coming Soon
+15. Java 23, SpringBoot 3.5.4: CRUD Queries & Page Sort — Part 15 Coming Soon
 
 ### Pre-Requisites
 
-1. SpringBoot 3.3.4
-2. Java 23 (Minimum Requirement Java 17)
+1. SpringBoot 3.5.4
+2. Java 23 (Minimum Requirement Java 21)
 3. Jakarta EE 10 (jakarta.servlet.*, jakarta.persistence.*, javax.validation.*)
 4. Maven 3.8.6
 5. Git 2.31

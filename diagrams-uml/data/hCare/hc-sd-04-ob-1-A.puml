@@ -1,0 +1,87 @@
+@startuml
+title Object Diagram — Snapshot at Result Publication
+top to bottom direction
+
+' Actors / people
+object "Patient p1" as P1 #F8BBD0 {
+  patientId = "PAT-10023"
+  name = "Anita Menon"
+}
+object "Doctor d1" as D1 #42A5F5 {
+  staffId = "DOC-047"
+  name = "Dr. Ajay Varma"
+}
+object "Nurse n1" as N1 #FFB74D {
+  staffId = "NUR-112"
+  name = "Sr. Latha"
+}
+
+' Appointment & encounter
+object "Appointment a1" as A1 #E3F2FD {
+  appointmentId = "APT-2025-081"
+  scheduledAt = 2025-08-20T09:30
+  status = "Completed"
+}
+object "Encounter e1" as E1 #F1F8E9 {
+  encounterId = "ENC-559"
+  start = 2025-08-20T09:42
+  end = 2025-08-20T10:05
+}
+
+' L2 diagnostics
+object "PreCheckupRecord pc1" as PC1 #FFFDE7 {
+  collectedAt = 2025-08-20T09:38
+  bp = "128/82"
+  tempC = 38.2
+  spo2 = 97
+}
+object "Diagnosis dx1" as DX1 #EDE7F6 {
+  code = "J06.9"
+  text = "Acute URI"
+}
+
+' Prescription
+object "Prescription rx1" as RX1 #FFF3E0 {
+  prescriptionId = "RX-7781"
+  date = 2025-08-20
+  status = "Signed"
+}
+object "MedicationOrder mo1" as MO1 #FFF3E0 {
+  drug = "Amoxicillin 500 mg"
+  route = "PO"
+  frequency = "TID"
+  duration = "5 days"
+}
+
+' Lab
+object "LabOrder lo1" as LO1 #E1F5FE {
+  labOrderId = "LO-3349"
+  status = "Published"
+  tests = ["CBC"]
+}
+object "LabResult lr1" as LR1 #E1F5FE {
+  labResultId = "LR-3349"
+  publishedAt = 2025-08-20T12:05
+  summary = "CBC within normal limits"
+}
+
+' (Optional) pharmacy state at this snapshot
+object "Dispense disp1" as DISP1 #FBE9E7 {
+  dispenseId = "DP-9012"
+  status = "Pending"
+}
+
+' Links
+P1 -- A1  : patient
+D1 -- A1  : doctor
+A1 -- E1  : createsEncounter
+N1 -- PC1 : collectedBy
+E1 -- PC1 : preCheckup
+E1 -- DX1 : diagnosis
+DX1 -- RX1 : generates
+RX1 -- MO1 : items[1]
+RX1 -- LO1 : labOrder
+LO1 -- LR1 : result
+RX1 -- DISP1 : dispense
+P1 -- DISP1  : forPatient
+@enduml

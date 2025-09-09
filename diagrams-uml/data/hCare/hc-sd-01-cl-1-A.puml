@@ -1,0 +1,36 @@
+@startuml
+title Onboarding — Classes
+
+package "Identity & People" {
+  class UserAccount {
+    +userId: UUID
+    +username: String
+    +passwordHash: String
+    +roles: Set<Role>
+    +status: AccountStatus
+    +createdAt: DateTime
+  }
+
+  class Patient {
+    +patientId: UUID
+    +mrn: String
+    +name: String
+    +dob: Date
+    +contact: String
+  }
+
+  class Staff {
+    +staffId: UUID
+    +name: String
+    +licenseNo: String
+  }
+  class Doctor
+  class Nurse
+  Doctor --|> Staff
+  Nurse  --|> Staff
+
+  Patient "1" --> "1" UserAccount : authenticates >
+  UserAccount "1" o-- "0..1" Patient
+  UserAccount "1" o-- "0..1" Staff
+}
+@enduml

@@ -1,0 +1,52 @@
+@startuml
+title C4-3 Component — Order Service
+left to right direction
+skinparam shadowing false
+skinparam defaultTextAlignment center
+skinparam ArrowColor #9AA0A6
+skinparam Rectangle {
+  RoundCorner 18
+  BorderColor #283238
+  FontColor #111111
+}
+
+' L1 colors we must keep for externals
+!define EXT_PG        #AED581
+!define KAFKA_COLOR   #ECEFF1
+
+' Order service tint (same as before)
+!define ORDER_COLOR   #FFF3E0
+
+rectangle "Order Service (container)" as ORDER_BOX ORDER_COLOR {
+  rectangle "**Order API Controller**" as API ORDER_COLOR
+  rectangle "**Application Service**"  as APP ORDER_COLOR
+  rectangle "**Totals/Tax Calculator**" as CALC ORDER_COLOR
+  rectangle "**Saga / Orchestrator**"  as SAGA ORDER_COLOR
+  rectangle "**Order Repository**"     as REPO #FFE0B2
+  rectangle "**Outbox Writer**"        as OUTBOX #FFE0B2
+  rectangle "«queue»\n**Kafka Publisher**" as PUB KAFKA_COLOR
+  rectangle "«queue»\n**Kafka Consumer**"  as SUB KAFKA_COLOR
+}
+
+rectangle "Order DB" as ORDER_DB #FFCC80
+rectangle "Payment Client" as PAYCLI EXT_PG
+rectangle "Inventory Client" as INVCLI #E6F4EA
+rectangle "Kafka" as KAFKA KAFKA_COLOR
+
+API --> APP : placeOrder(cart)
+APP --> CALC : computeTotals()
+APP --> REPO : save(order)
+APP --> OUTBOX : append(order.placed)
+OUTBOX --> ORDER_DB : TX (order + outbox)
+APP --> PUB : flushOutbox()
+PUB --> KAFKA : order.placed
+
+SUB <-- KAFKA : payment.authorized / captured
+SUB --> SAGA : handle(event)
+SAGA --> REPO : update(order)
+SAGA --> PUB  : publish follow-ups
+
+APP --> PAYCLI : requestAuthorization()
+APP --> INVCLI : reserveInventory()
+REPO --> ORDER_DB
+@enduml

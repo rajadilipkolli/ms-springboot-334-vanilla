@@ -1,0 +1,27 @@
+@startuml
+title Sequence Diagram — Onboarding
+
+actor Patient as P #CE93D8
+participant "Patient App" as App #64B5F6
+participant "Auth Service" as Auth #EF5350
+participant "Patient Service" as PatSvc #E1BEE7
+participant "Notification" as Notif #C8E6C9
+
+autonumber
+
+P -> App: Register(username, password, profile)
+App -> Auth: createAccount(username, password, consent)
+Auth -> PatSvc: createPatient(profile)
+PatSvc --> Auth: patientId
+Auth -> Notif: sendVerificationCode(patientId)
+Notif --> P: OTP / verification link
+
+P -> App: submitVerification(code)
+App -> Auth: verify(code)
+Auth --> App: status=Active
+
+P -> App: Login(username, password)
+App -> Auth: authenticate()
+Auth --> App: token
+App --> P: session established
+@enduml

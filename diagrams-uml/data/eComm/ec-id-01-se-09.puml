@@ -1,0 +1,40 @@
+@startuml
+title Sequence — Return (RMA) → Restock → Refund
+autonumber
+actor Customer as C
+participant "API Gateway/BFF" as G #ECEFF1
+participant "Order Service" as ORDER #FFF3E0
+participant "Shipping Service" as SHIP #E0F2F1
+participant "Inventory Service" as INV #E6F4EA
+participant "Payment Service" as PAY #FBE9E7
+participant "Kafka (Event Bus)" as KAFKA #ECEFF1
+actor "Carrier" as CARRIER
+
+' RMA request
+C -> G: requestReturn(orderId, items, reason)
+G -> ORDER: createRMA(orderId, items, reason)
+ORDER --> G: rmaId, status=Approved/Pending
+G --> C: RMA info
+
+' Return label
+ORDER -> SHIP: createReturnLabel(orderId, rmaId)
+SHIP -> KAFKA: publish [return.label_created {orderId, rmaId, labelUrl}]
+KAFKA -> ORDER: event return.label_created
+
+' Customer ships back
+CARRIER -> SHIP: return.picked(rmaId)
+SHIP -> KAFKA: publish [return.picked {orderId, rmaId}]
+CARRIER -> SHIP: return.received(rmaId)
+SHIP -> KAFKA: publish [return.received {orderId, rmaId, items}]
+
+' Restock on receive
+KAFKA -> INV: event return.received(orderId, items)
+INV -> INV: restock(items)
+INV -> KAFKA: publish [inventory.restocked {orderId, items}]
+
+' Refund after receive (policy-dependent)
+ORDER -> PAY: refund(paymentId, amount)
+PAY -> KAFKA: publish [payment.refunded {orderId, amount}]
+KAFKA -> ORDER: event payment.refunded
+ORDER -> ORDER: mark Refunded/Closed
+@enduml

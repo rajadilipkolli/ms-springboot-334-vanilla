@@ -1,0 +1,43 @@
+@startuml
+title Kafka Topic Map — Order & Payment
+left to right direction
+skinparam componentStyle rectangle
+
+package "Order" #FFF3E0 {
+  [Order Svc] as ORDER #FFF3E0
+}
+package "Payment" #FBE9E7 {
+  [Payment Svc] as PAY #FBE9E7
+}
+package "Cart" #FFFDE7 {
+  [Cart Svc] as CART #FFFDE7
+}
+
+' Topics
+component "topic: order.placed"     as T_OPL   <<topic>> #ECEFF1
+component "topic: order.cancelled"  as T_OCAN  <<topic>> #ECEFF1
+component "topic: payment.authorized" as T_PA  <<topic>> #ECEFF1
+component "topic: payment.failed"     as T_PF  <<topic>> #ECEFF1
+component "topic: payment.captured"   as T_PC  <<topic>> #ECEFF1
+component "topic: payment.refunded"   as T_PR  <<topic>> #ECEFF1
+component "topic: order.paid"         as T_OP  <<topic>> #ECEFF1
+
+' Producers
+CART  ..> T_OPL  : publish (from checkout)
+ORDER ..> T_OCAN : publish
+PAY   ..> T_PA   : publish
+PAY   ..> T_PF   : publish
+PAY   ..> T_PC   : publish
+PAY   ..> T_PR   : publish
+ORDER ..> T_OP   : publish (after capture)
+
+' Consumers (typical)
+ORDER <-- T_OPL : create order
+PAY   <-- T_OPL : start authorization
+ORDER <-- T_PA  : mark Authorized
+ORDER <-- T_PF  : mark PaymentFailed
+ORDER <-- T_PC  : mark Paid
+ORDER <-- T_PR  : mark Refunded
+' downstream subscribers (illustrative)
+' Inventory, Shipping, Email, Analytics could also consume these topics
+@enduml

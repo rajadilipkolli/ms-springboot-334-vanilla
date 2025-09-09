@@ -1,0 +1,50 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+LAYOUT_LEFT_RIGHT()
+
+' ---- External containers referenced in this view ----
+Container_Boundary(hc, "Health Care App") {
+  Container(diagSvc, "Diagnosis Service", "Service", "Pre-checkup, history, diagnosis & eRx")
+}
+
+ContainerDb_Ext(apptDb, "Appointment DB", "Relational", "Appointment data")
+ContainerDb_Ext(diagDb, "Diagnosis DB", "Relational", "Diagnoses & prescriptions")
+ContainerDb_Ext(histDb, "History Store", "Relational/Doc", "Patient medical history")
+Container_Ext(labInt, "Lab Integration Service", "Service", "Orders/results")
+Container_Ext(pharmInt, "Pharmacy Integration Service", "Service", "eRx")
+
+' ---- Components inside Diagnosis Service ----
+Component(apiPre, "PreCheckupController", "REST", "Endpoints to capture vitals/pre-check data")
+Component(apiHist, "HistoryController", "REST", "Endpoints to view/attach medical history")
+Component(apiDiag, "DiagnosisController", "REST", "Endpoints to create diagnosis & prescription")
+
+Component(appPre, "PreCheckupService", "App Service", "Validates & persists pre-check")
+Component(appHist, "HistoryService", "App Service", "Loads/filters patient history")
+Component(appDiag, "DiagnosisAppService", "App Service", "Creates diagnosis, issues eRx, orders lab")
+
+Component(repoAppt, "AppointmentRepository", "Repository", "Reads appointments")
+Component(repoHist, "HistoryRepository", "Repository", "Reads medical history")
+Component(repoDiag, "DiagnosisRepository", "Repository", "Persists diagnosis & prescriptions")
+
+Component(labClient, "LabClient", "HTTP Client", "Place orders & fetch results")
+Component(rxClient, "PharmacyClient", "HTTP Client", "Send eRx & query status")
+
+' ---- Wiring ----
+Rel(apiPre, appPre, "DTOs")
+Rel(apiHist, appHist, "DTOs")
+Rel(apiDiag, appDiag, "DTOs")
+
+Rel(appPre, repoAppt, "get(appointmentId)")
+Rel(appHist, repoHist, "findByPatient(patientId)")
+Rel(appDiag, repoDiag, "save(diagnosis, prescription)")
+
+Rel(repoAppt, apptDb, "SQL")
+Rel(repoHist, histDb, "SQL/Query")
+Rel(repoDiag, diagDb, "SQL")
+
+Rel(appDiag, labClient, "orderTests(), getResults()")
+Rel(appDiag, rxClient, "sendPrescription(), checkStatus()")
+
+Rel(labClient, labInt, "HTTPS/JSON")
+Rel(rxClient, pharmInt, "HTTPS/JSON")
+@enduml

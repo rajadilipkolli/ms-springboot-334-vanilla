@@ -1,0 +1,64 @@
+@startuml
+title Sequence — Label Reprint & Address Correction (Idempotent)
+autonumber
+actor "Ops Agent" as OPS
+participant "Shipping Service" as SHIP #E0F2F1
+participant "Carrier Router/Adapter" as ADAPTER #E0F2F1
+participant "Idempotency Store" as IDEMP #ECEFF1
+participant "DHL Adapter" as AD_DHL #E0F2F1
+participant "FedEx Adapter" as AD_FDX #E0F2F1
+actor "DHL API" as DHL #CFD8DC
+actor "FedEx API" as FDX #CFD8DC
+participant "Kafka (Event Bus)" as KAFKA #ECEFF1
+
+' === A) LABEL REPRINT (idempotent) ===
+OPS -> SHIP: ReprintLabel(orderId,\n idemKey="reprint-"+orderId)
+SHIP -> ADAPTER: reprintLabel(orderId, idemKey)
+
+' Fast return if we already served this request
+ADAPTER -> IDEMP: insertIfAbsent(idemKey, status="pending")
+alt Exists already (duplicate call)
+  ADAPTER -> IDEMP: read(idemKey.result)
+  ADAPTER --> SHIP: cached labelUrl
+  SHIP -> KAFKA: publish label.reprinted{orderId, cached=true}
+else First time
+  ' Choose carrier from stored shipment (omitted: lookup)
+  ADAPTER -> AD_DHL: reprint(orderId, idemKey)
+  AD_DHL -> DHL: POST /labels/reprint (Idempotency-Key: idemKey)
+  alt Carrier returns label
+    DHL --> AD_DHL: 200 {labelUrl}
+    AD_DHL --> ADAPTER: labelUrl
+    ADAPTER -> IDEMP: saveResult(idemKey, labelUrl)
+    ADAPTER --> SHIP: labelUrl
+    SHIP -> KAFKA: publish label.reprinted{orderId, cached=false}
+  else Temporary error
+    ADAPTER --> SHIP: error(retryable)
+  end
+end
+
+' === B) ADDRESS CORRECTION (idempotent, pre-pickup only) ===
+OPS -> SHIP: CorrectAddress(orderId, newAddress,\n idemKey="addrfix-"+orderId)
+SHIP -> ADAPTER: correctAddress(orderId, newAddress, idemKey)
+ADAPTER -> IDEMP: insertIfAbsent(idemKey, "pending")
+alt Exists already (duplicate)
+  ADAPTER -> IDEMP: read(idemKey.result)
+  ADAPTER --> SHIP: cached outcome
+else First time
+  ' Suppose the shipment was via FedEx
+  ADAPTER -> AD_FDX: correctAddress(orderId, newAddress, idemKey)
+  AD_FDX -> FDX: PATCH /shipments/{id}/address\n(Idempotency-Key: idemKey)
+  alt Accepted (not yet picked)
+    FDX --> AD_FDX: 200 {updatedAddress}
+    AD_FDX --> ADAPTER: success
+    ADAPTER -> IDEMP: saveResult(idemKey, "success")
+    ADAPTER --> SHIP: success
+    SHIP -> KAFKA: publish shipping.address_corrected{orderId}
+  else Rejected (already picked/shipped)
+    FDX --> AD_FDX: 409 {status="in_transit"}
+    AD_FDX --> ADAPTER: rejected(in_transit)
+    ADAPTER -> IDEMP: saveResult(idemKey, "rejected")
+    ADAPTER --> SHIP: rejected(in_transit)
+    SHIP -> KAFKA: publish shipping.address_change_rejected{orderId, reason="in_transit"}
+  end
+end
+@enduml

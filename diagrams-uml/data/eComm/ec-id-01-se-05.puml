@@ -1,0 +1,30 @@
+@startuml
+title Sequence — Refund (Full or Partial)
+autonumber
+actor Customer as C
+participant "API Gateway/BFF" as G #ECEFF1
+participant "Order Service" as ORDER #FFF3E0
+participant "Payment Service" as PAY #FBE9E7
+participant "Kafka (Event Bus)" as KAFKA #ECEFF1
+
+C -> G: RequestRefund(orderId, items/amount, reason)
+G -> ORDER: createRefundRequest(orderId, amount, reason)
+ORDER -> ORDER: validate eligibility\n(window, policy, shipped?)
+
+alt Approved
+  ORDER -> PAY: refund(paymentId, amount)
+  PAY -> KAFKA: publish [topic=payment.refunded,\n {orderId, paymentId, amount, ts}]
+  KAFKA -> ORDER: event payment.refunded
+  alt Full refund
+    ORDER -> ORDER: mark Refunded
+    ' (optional) ORDER -> KAFKA: publish order.refunded
+  else Partial refund
+    ORDER -> ORDER: record PartialRefund\n(order remains Paid)
+  end
+  ORDER --> G: refundAck(status, amount)
+  G --> C: refund status (issued/processing)
+else Rejected
+  ORDER --> G: refundRejected(reason)
+  G --> C: rejection (reason)
+end
+@enduml

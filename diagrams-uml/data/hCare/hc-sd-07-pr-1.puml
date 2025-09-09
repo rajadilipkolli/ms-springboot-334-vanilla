@@ -1,0 +1,113 @@
+@startuml
+title Profile Diagram — HealthcareProfile (stereotypes + extensions)
+left to right direction
+skinparam classAttributeIconSize 0
+
+package "HealthcareProfile" <<Profile>> {
+  ' --- UML metaclasses this profile extends ---
+  class Component <<metaclass>>
+  class Node      <<metaclass>>
+  class Package   <<metaclass>>
+  class Actor     <<metaclass>>
+
+  ' --- Infra stereotypes ---
+  class Gateway <<stereotype>> #ECEFF1 {
+    owner: String
+    version: String
+  }
+  Gateway ..> Component : <<extends>>
+
+  class MessageBroker <<stereotype>> #ECEFF1 {
+    topicPrefix: String
+  }
+  MessageBroker ..> Component : <<extends>>
+
+  class ExternalSystem <<stereotype>> #E0E0E0
+  ExternalSystem ..> Node : <<extends>>
+
+  ' --- Actor stereotypes (colors match earlier palette) ---
+  class PatientActor <<stereotype>> #F8BBD0
+  PatientActor ..> Actor : <<extends>>
+
+  class DoctorActor <<stereotype>> #42A5F5
+  DoctorActor ..> Actor : <<extends>>
+
+  class NurseActor <<stereotype>> #FFB74D
+  NurseActor ..> Actor : <<extends>>
+
+  ' --- Domain service stereotypes (light shades) ---
+  class AuthService          <<stereotype>> #E0F7FA 
+  AuthService ..> Component : <<extends>>
+
+  class PatientService       <<stereotype>> #E8F5E9
+  PatientService ..> Component : <<extends>>
+
+  class AppointmentService   <<stereotype>> #E3F2FD
+  AppointmentService ..> Component : <<extends>>
+
+  class EncounterService     <<stereotype>> #F1F8E9
+  EncounterService ..> Component : <<extends>>
+
+  class PreCheckupService    <<stereotype>> #FFFDE7
+  PreCheckupService ..> Component : <<extends>>
+
+  class HistoryService       <<stereotype>> #F3E5F5
+  HistoryService ..> Component : <<extends>>
+
+  class DiagnosticService    <<stereotype>> #EDE7F6
+  DiagnosticService ..> Component : <<extends>>
+
+  class PrescriptionService  <<stereotype>> #FFF3E0
+  PrescriptionService ..> Component : <<extends>>
+
+  class LabService           <<stereotype>> #E1F5FE
+  LabService ..> Component : <<extends>>
+
+  class PharmacyService      <<stereotype>> #FBE9E7
+  PharmacyService ..> Component : <<extends>>
+
+  class NotificationService  <<stereotype>> #E8EAF6
+  NotificationService ..> Component : <<extends>>
+
+  ' --- Data store stereotypes (darker shades, extend Node) ---
+  class IdentityDB  <<stereotype>> #80DEEA
+  IdentityDB ..> Node : <<extends>>
+
+  class PatientDB   <<stereotype>> #A5D6A7
+  PatientDB ..> Node : <<extends>>
+
+  class AppointmentDB <<stereotype>> #90CAF9
+  AppointmentDB ..> Node : <<extends>>
+
+  class EncounterDB <<stereotype>> #C5E1A5
+  EncounterDB ..> Node : <<extends>>
+
+  class HistoryDB   <<stereotype>> #CE93D8
+  HistoryDB ..> Node : <<extends>>
+
+  class RxDB        <<stereotype>> #FFCC80
+  RxDB ..> Node : <<extends>>
+
+  class LabDB       <<stereotype>> #81D4FA
+  LabDB ..> Node : <<extends>>
+
+  class PharmacyDB  <<stereotype>> #FFAB91
+  PharmacyDB ..> Node : <<extends>>
+}
+
+' --- Optional: tiny applied sketch using the stereotypes ---
+package "Applied Example" {
+  class "API Gateway"            <<Gateway>>
+  class "Auth"                   <<AuthService>>
+  class "User/Identity Store"    <<IdentityDB>>
+  class "Lab"                    <<LabService>>
+  class "Lab DB"                 <<LabDB>>
+  class "External Lab Analyzer"  <<ExternalSystem>>
+
+  "API Gateway" --> "Auth" : uses
+  "Auth" --> "User/Identity Store"
+  "Lab"  --> "Lab DB"
+  "Lab"  ..> "External Lab Analyzer" : LIS/HL7
+}
+@enduml
+

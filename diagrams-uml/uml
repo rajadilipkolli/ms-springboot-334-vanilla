@@ -1,0 +1,6 @@
+#!/bin/bash
+#echo "java -jar plantuml-lgpl-1.2025.4.jar"
+#java -jar plantuml-lgpl-1.2025.4.jar
+
+echo "java -DGRAPHVIZ_DOT=$GRAPHVIZ_DOT -jar lib/plantuml-1.2025.4.jar"
+java -DGRAPHVIZ_DOT=$GRAPHVIZ_DOT -jar lib/plantuml-1.2025.4.jar

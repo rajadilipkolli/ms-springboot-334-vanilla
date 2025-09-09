@@ -1,0 +1,14 @@
+@startuml
+title State Chart — Prescription / Dispense
+[*] #Green --> Draft #A5D6A7
+Draft --> Signed #4FC3F7 : doctor signs
+Signed --> Cancelled #EF5350 : clinician voids
+Signed --> Expired #EF5350 : validity window elapsed
+Signed --> Dispensing #FFF59D : pharmacy accepts
+Dispensing --> PartiallyDispensed #FFB74D : partial fill
+PartiallyDispensed --> Dispensed #CE93D8 : completed
+Dispensing --> Dispensed : full fill
+Cancelled --> [*] #Red
+Expired --> [*]
+Dispensed --> [*]
+@enduml

@@ -1,0 +1,69 @@
+@startuml
+title Sequence — Guest Checkout with Tokenized Payment
+autonumber
+actor Guest as GUEST
+actor "Payment Gateway" as PG
+participant "API Gateway/BFF" as G #ECEFF1
+participant "Authentication" as AUTH #E0F7FA
+participant "Search Service" as SEARCH #E3F2FD
+participant "Product Catalogue" as CAT #E1F5FE
+participant "Shopping Cart" as CART #FFFDE7
+participant "Order Service" as ORDER #FFF3E0
+participant "Payment Service" as PAY #FBE9E7
+participant "Kafka (Event Bus)" as KAFKA #ECEFF1
+
+' --- session & browse ---
+GUEST -> G: StartGuestSession()
+G -> AUTH: createGuestSession()
+AUTH --> G: guestToken
+G --> GUEST: session established
+
+GUEST -> G: Search(query)
+G -> SEARCH: search(query)
+SEARCH --> G: results[]
+G --> GUEST: results[]
+
+GUEST -> G: ViewProduct(productId)
+G -> CAT: getProduct(productId)
+CAT --> G: product details
+G --> GUEST: product details
+G -> KAFKA: publish [topic=product.viewed, {sessionId, productId, ts}]
+
+' --- cart ---
+GUEST -> G: AddToCart(productId, qty)
+G -> CART: addItem(sessionId, productId, qty)
+CART --> G: cartSnapshot
+G --> GUEST: cartSnapshot
+G -> KAFKA: publish [topic=cart.updated, {cartId, delta, ts}]
+
+' --- tokenized payment & checkout ---
+GUEST -> G: ProvideShippingAndPayment(card details)
+G -> PG: tokenize(card details)
+PG --> G: paymentMethodToken
+G -> PAY: createPaymentIntent(amount, paymentMethodToken)
+PAY --> G: intentId, clientSecret
+
+G -> ORDER: placeOrder(cartSnapshot, shipping,\n paymentIntent=intentId)
+ORDER -> ORDER: computeTotals
+ORDER --> G: orderId, status=Placed
+G -> KAFKA: publish [topic=cart.checked_out, {cartId, orderId, ts}]
+G -> KAFKA: publish [topic=order.placed, {orderId, amount, ts}]
+
+' --- authorization & capture (can be sync/async) ---
+G -> PAY: authorize(intentId)
+alt Authorized
+  PAY -> KAFKA: publish [topic=payment.authorized,\n {orderId, paymentId, ts}]
+  KAFKA -> ORDER: event payment.authorized
+  ORDER -> PAY: capture(paymentId, amount)
+  PAY -> KAFKA: publish [topic=payment.captured,\n {orderId, paymentId, ts}]
+  KAFKA -> ORDER: event payment.captured
+  ORDER -> ORDER: mark Paid
+  ORDER -> KAFKA: publish [topic=order.paid, {orderId, ts}]
+  G --> GUEST: order confirmation
+else Failed
+  PAY -> KAFKA: publish [topic=payment.failed,\n {orderId, reason, ts}]
+  KAFKA -> ORDER: event payment.failed
+  ORDER -> ORDER: mark PaymentFailed
+  G --> GUEST: payment failed (retry)
+end
+@enduml

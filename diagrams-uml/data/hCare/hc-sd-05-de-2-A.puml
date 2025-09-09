@@ -1,0 +1,95 @@
+@startuml
+title Deployment — In-Cluster Detail (Pods & Services)
+left to right direction
+skinparam componentStyle rectangle
+
+cloud "Internet/CDN/WAF" as NET
+rectangle "API Gateway / BFF" as G #ECEFF1
+
+node "Kubernetes Cluster" as K8S {
+  node "Namespace: healthcare" as NS {
+    rectangle "Ingress Controller / Service Mesh" as MESH #ECEFF1
+
+    node "Pod: auth-xxx" as POD_AUTH {
+      component "Auth Service" as AUTH #E0F7FA
+    }
+    node "Pod: patient-xxx" as POD_PAT {
+      component "Patient Service" as PAT #E8F5E9
+    }
+    node "Pod: appt-xxx" as POD_APPT {
+      component "Appointment Service" as APPT #E3F2FD
+    }
+    node "Pod: encounter-xxx" as POD_ENC {
+      component "Encounter Service" as ENC #F1F8E9
+    }
+    node "Pod: precheck-xxx" as POD_PRE {
+      component "PreCheckup Service" as PRE #FFFDE7
+    }
+    node "Pod: history-xxx" as POD_HIST {
+      component "History Service" as HIST #F3E5F5
+    }
+    node "Pod: diagnostic-xxx" as POD_DIAG {
+      component "Diagnostic Service" as DIAG #EDE7F6
+    }
+    node "Pod: rx-xxx" as POD_RX {
+      component "Prescription Service" as RX #FFF3E0
+    }
+    node "Pod: lab-xxx" as POD_LAB {
+      component "Lab Service" as LAB #E1F5FE
+    }
+    node "Pod: pharmacy-xxx" as POD_PHARM {
+      component "Pharmacy Service" as PHARM #FBE9E7
+    }
+    node "Pod: notif-xxx" as POD_NOTIF {
+      component "Notification Service" as NOTIF #E8EAF6
+    }
+
+    component "Message Broker (StatefulSet)" as MQ <<queue>> #ECEFF1
+  }
+}
+
+' Managed stores (darker shades of their services)
+database "User/Identity DB" as ID_DB    #80DEEA
+database "Patient DB"       as PAT_DB   #A5D6A7
+database "Appointment DB"   as APPT_DB  #90CAF9
+database "Encounter DB"     as ENC_DB   #C5E1A5
+database "History DB"       as HIST_DB  #CE93D8
+database "Rx DB"            as RX_DB    #FFCC80
+database "Lab DB"           as LAB_DB   #81D4FA
+database "Pharmacy DB"      as PHARM_DB #FFAB91
+folder   "Object Storage"   as OBJ
+cloud    "Email/SMS"        as ESMS
+cloud    "External Lab Analyzer" as ANALYZER
+
+NET --> G
+G --> MESH
+
+MESH --> AUTH
+MESH --> PAT
+MESH --> APPT
+MESH --> ENC
+MESH --> PRE
+MESH --> HIST
+MESH --> DIAG
+MESH --> RX
+MESH --> LAB
+MESH --> PHARM
+MESH --> NOTIF
+
+AUTH --> ID_DB
+PAT  --> PAT_DB
+APPT --> APPT_DB
+ENC  --> ENC_DB
+HIST --> HIST_DB
+RX   --> RX_DB
+LAB  --> LAB_DB
+PHARM--> PHARM_DB
+LAB  --> OBJ
+
+LAB ..> ANALYZER
+NOTIF --> ESMS
+RX ..> LAB
+LAB ..> RX
+RX ..> PHARM
+PHARM ..> RX
+@enduml

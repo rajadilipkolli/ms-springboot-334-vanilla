@@ -1,0 +1,97 @@
+@startuml
+title C4-2 Container — E-Commerce Platform
+left to right direction
+skinparam shadowing false
+skinparam defaultTextAlignment center
+skinparam ArrowColor #9AA0A6
+skinparam Rectangle {
+  RoundCorner 18
+  BorderColor #283238
+  FontColor #111111
+}
+<style>
+frame {
+  LineStyle dashed
+  LineColor #9AA0A6
+  BackgroundColor #FFF8E1
+}
+</style>
+
+' ---- L1 colors to keep consistency ----
+!define ACT_CUSTOMER  #F8BBD0
+!define ACT_ADMIN     #FFB74D
+!define CORE_COLOR    #FFEE58
+!define EXT_PG        #AED581
+!define EXT_ESMS      #F8BBD0
+!define EXT_CARRIERS  #E1BEE7
+!define EXT_IDP       #FFCDD2
+!define EXT_ANALYTICS #D7CCC8
+!define KAFKA_COLOR   #ECEFF1
+
+' ---- internal service palette (same as before) ----
+!define AUTH_COLOR    #E0F7FA
+!define CUST_COLOR    #E8F5E9
+!define CATALOG_COLOR #E1F5FE
+!define SEARCH_COLOR  #E3F2FD
+!define CART_COLOR    #FFFDE7
+!define ORDER_COLOR   #FFF3E0
+!define PAYMENT_COLOR #FBE9E7
+!define INV_COLOR     #E6F4EA
+!define SHIP_COLOR    #E0F2F1
+
+' ---- actors ----
+rectangle "«person»\n**Customer**" as ACT_C ACT_CUSTOMER
+rectangle "«person»\n**Ops/Admin**" as ACT_A ACT_ADMIN
+
+' ---- system boundary ----
+frame "System in scope\n[system]" as SCOPE {
+  rectangle "**API Gateway / BFF**" as G CORE_COLOR
+  rectangle "**Authentication**"      as AUTH AUTH_COLOR
+  rectangle "**Customer**"            as CUST CUST_COLOR
+  rectangle "**Product Catalogue**"   as CAT  CATALOG_COLOR
+  rectangle "**Search**"              as SEARCH SEARCH_COLOR
+  rectangle "**Shopping Cart**"       as CART  CART_COLOR
+  rectangle "**Order**"               as ORDER ORDER_COLOR
+  rectangle "**Payment**"             as PAY   PAYMENT_COLOR
+  rectangle "**Inventory**"           as INV   INV_COLOR
+  rectangle "**Shipping**"            as SHIP  SHIP_COLOR
+  rectangle "«queue»\n**Kafka**"      as KAFKA KAFKA_COLOR
+}
+
+' ---- external systems (same colors as L1) ----
+rectangle "Payment Gateway"           as PG        EXT_PG
+rectangle "Email/SMS Provider"        as ESMS      EXT_ESMS
+rectangle "Carrier Networks"          as CARRIERS  EXT_CARRIERS
+rectangle "Identity Provider (SSO)"   as IDP       EXT_IDP
+rectangle "Analytics / BI"            as ANALYTICS EXT_ANALYTICS
+
+' ---- access paths ----
+ACT_C --> G : REST / GraphQL
+ACT_A --> G : Admin APIs
+
+G --> AUTH
+G --> CUST
+G --> CAT
+G --> SEARCH
+G --> CART
+G --> ORDER
+G --> PAY
+G --> INV
+G --> SHIP
+
+' ---- data/events and externals ----
+CART  ..> KAFKA : cart.updated\ncart.checked_out
+ORDER ..> KAFKA : order.placed / order.paid / order.cancelled
+PAY   ..> KAFKA : payment.*
+INV   ..> KAFKA : inventory.*
+SHIP  ..> KAFKA : shipment.*
+
+PAY --> PG
+ORDER ..> ESMS
+SHIP  --> CARRIERS
+AUTH  --> IDP
+
+' (Optional) place Analytics if you export directly
+KAFKA ..> ANALYTICS : stream/export
+
+@enduml

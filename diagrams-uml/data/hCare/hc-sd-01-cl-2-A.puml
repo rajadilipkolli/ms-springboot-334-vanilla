@@ -1,0 +1,49 @@
+@startuml
+title Classes - Lab Package
+
+class Patient #FCE4EC {
+  +patientId: UUID
+  +name: String
+}
+class Prescription #F3E5F5 {
+  +prescriptionId: UUID
+  +date: Date
+}
+
+class Doctor #FFC107 {
+  +staffId: UUID
+  +name: String
+}
+
+class LabOrder #BBDEFB {
+  +labOrderId: UUID
+  +status: LabOrderStatus
+  +orderedAt: DateTime
+  --
+  +labOrderId: UUID 
+  +patientId: UUID
+  +prescriptionId: UUID
+  +orderedByStaffId: UUID
+}
+
+class LabOrderStatus <<enumeration>> #E0F2F1 {
+  Ordered
+  SampleCollected
+  Processing
+  ResultReady
+  Published
+  Cancelled
+}
+
+class LabResult #E0F7FA {
+  +labResultId: UUID
+  +publishedAt: DateTime
+  +summary: Text
+}
+
+LabOrder "1" -->  "1" LabOrderStatus : status
+LabOrder "1" *-- "0..1" LabResult : labOrderId
+Patient "1" <-- "0..*" LabOrder : patient
+Prescription "0..1" <-- "0..*" LabOrder : prescription
+Doctor "1" <-- "0..*" LabOrder : orderedBy
+@enduml

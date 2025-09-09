@@ -1,0 +1,95 @@
+@startuml
+title Deployment — Single Region (Kubernetes + Managed Data)
+left to right direction
+skinparam componentStyle rectangle
+
+' Actors
+actor Patient as P #F8BBD0
+actor Doctor  as D #42A5F5
+actor Nurse   as N #FFB74D
+
+cloud "Internet/CDN/WAF" as NET
+rectangle "API Gateway / BFF" as G #ECEFF1
+
+' Region & cluster
+node "Region: prod-ap-south-1" {
+  node "VPC / Subnets" {
+    node "Kubernetes Cluster (EKS/AKS/GKE)" {
+      node "Namespace: healthcare" {
+        component "Auth Service"          as AUTH  #E0F7FA
+        component "Patient Service"       as PAT   #E8F5E9
+        component "Appointment Service"   as APPT  #E3F2FD
+        component "Encounter Service"     as ENC   #F1F8E9
+        component "PreCheckup Service"    as PRE   #FFFDE7
+        component "History Service"       as HIST  #F3E5F5
+        component "Diagnostic Service"    as DIAG  #EDE7F6
+        component "Prescription Service"  as RX    #FFF3E0
+        component "Lab Service"           as LAB   #E1F5FE
+        component "Pharmacy Service"      as PHARM #FBE9E7
+        component "Notification Service"  as NOTIF #E8EAF6
+        component "Message Broker" as MQ <<queue>> #ECEFF1
+      }
+      rectangle "Ingress / Service Mesh" as MESH #ECEFF1
+    }
+  }
+}
+
+' Managed data services (outside cluster)
+database  "User/Identity DB" as ID_DB    #80DEEA
+database  "Patient DB"       as PAT_DB   #A5D6A7
+database  "Appointment DB"   as APPT_DB  #90CAF9
+database  "Encounter DB"     as ENC_DB   #C5E1A5
+database  "History DB"       as HIST_DB  #CE93D8
+database  "Rx DB"            as RX_DB    #FFCC80
+database  "Lab DB"           as LAB_DB   #81D4FA
+database  "Pharmacy DB"      as PHARM_DB #FFAB91
+folder    "Object Storage (Lab PDFs/Images)" as OBJ
+cloud     "Email/SMS Provider" as ESMS
+cloud     "External Lab Analyzer" as ANALYZER
+
+' Client flow
+P --> NET
+D --> NET
+N --> NET
+NET --> G
+G --> MESH
+
+' Mesh → services
+MESH --> AUTH
+MESH --> PAT
+MESH --> APPT
+MESH --> ENC
+MESH --> PRE
+MESH --> HIST
+MESH --> DIAG
+MESH --> RX
+MESH --> LAB
+MESH --> PHARM
+MESH --> NOTIF
+
+' Services → data (color-paired)
+AUTH --> ID_DB
+PAT  --> PAT_DB
+APPT --> APPT_DB
+ENC  --> ENC_DB
+HIST --> HIST_DB
+RX   --> RX_DB
+LAB  --> LAB_DB
+PHARM--> PHARM_DB
+LAB  --> OBJ
+
+' Cross-service + external
+RX ..> LAB   : createLabOrder
+LAB ..> RX   : labResultReady (event)
+RX ..> PHARM : ePrescription
+PHARM ..> RX : dispenseStatus (event)
+LAB  ..> ANALYZER : HL7/LIS
+NOTIF --> ESMS
+
+' Events
+PRE  ..> MQ
+DIAG ..> MQ
+LAB  ..> MQ
+RX   ..> MQ
+PHARM..> MQ
+@enduml

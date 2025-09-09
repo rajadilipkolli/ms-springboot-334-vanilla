@@ -1,0 +1,76 @@
+@startuml
+title Use Cases — Customer Journey (Microservices + Kafka)
+left to right direction
+skinparam packageStyle rectangle
+
+actor Guest     as ACT_G
+actor Customer  as ACT_C
+
+' Edge
+rectangle "Kafka (Event Bus)" as KAFKA <<queue>> #ECEFF1
+
+package "Authentication" #E0F7FA {
+  usecase "Register Account" as UC_REG
+  usecase "Login" as UC_LOGIN
+  usecase "Verify Email / OTP" as UC_VERIFY
+}
+
+package "Customer" #E8F5E9 {
+  usecase "Manage Profile" as UC_PROFILE
+  usecase "Manage Addresses" as UC_ADDR
+  usecase "View Order History" as UC_HISTORY
+}
+
+package "Product Catalogue" #E1F5FE {
+  usecase "Browse Categories" as UC_BROWSE
+  usecase "View Product Details" as UC_PDETAIL
+}
+
+package "Search Products" #E3F2FD {
+  usecase "Keyword Search" as UC_SEARCH
+  usecase "Filter/Sort Results" as UC_FILTER
+  usecase "Autocomplete" as UC_AC
+}
+
+package "Shopping Cart" #FFFDE7 {
+  usecase "Add to Cart" as UC_ADD
+  usecase "Update Quantity" as UC_QTY
+  usecase "Remove Item" as UC_REMOVE
+  usecase "View Cart" as UC_VIEWCART
+}
+
+package "Order" #FFF3E0 {
+  usecase "Checkout" as UC_CHECKOUT
+}
+
+' Actor → use cases
+ACT_G --> UC_BROWSE
+ACT_G --> UC_PDETAIL
+ACT_G --> UC_SEARCH
+ACT_G --> UC_FILTER
+ACT_G --> UC_AC
+ACT_G --> UC_ADD
+ACT_G --> UC_VIEWCART
+ACT_G --> UC_REG
+ACT_G --> UC_LOGIN
+
+ACT_C --> UC_PROFILE
+ACT_C --> UC_ADDR
+ACT_C --> UC_HISTORY
+ACT_C --> UC_QTY
+ACT_C --> UC_REMOVE
+ACT_C --> UC_CHECKOUT
+
+' Includes / extends inside the journey
+UC_SEARCH ..> UC_FILTER : <<include>>
+UC_CHECKOUT ..> UC_VIEWCART : <<include>>
+UC_VERIFY <.. UC_REG : <<extend>>   ' verification during registration
+
+' Kafka event hints (publish)
+UC_PDETAIL .. KAFKA : publish product.viewed
+UC_SEARCH  .. KAFKA : publish search.performed
+UC_ADD     .. KAFKA : publish cart.updated
+UC_QTY     .. KAFKA : publish cart.updated
+UC_REMOVE  .. KAFKA : publish cart.updated
+UC_CHECKOUT .. KAFKA : publish cart.checked_out
+@enduml

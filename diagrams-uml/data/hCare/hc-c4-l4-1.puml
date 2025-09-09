@@ -1,0 +1,196 @@
+@startuml
+skinparam packageStyle rectangle
+hide circle
+
+' ---- Color styles via stereotype-aware skinparams ----
+skinparam package {
+  BackgroundColor<<in-scope>> #FFFFFF
+  BorderColor<<in-scope>>     #6A1B9A
+  FontColor<<in-scope>>       #FFFFFF
+}
+skinparam class {
+  BackgroundColor<<patient>>   #FFD54F
+  BorderColor<<patient>>       #C6A700
+  FontColor<<patient>>         #000000
+
+  BackgroundColor<<doctor>>    #64B5F6
+  BorderColor<<doctor>>        #1E88E5
+  FontColor<<doctor>>          #000000
+
+  BackgroundColor<<nurse>>     #81C784
+  BorderColor<<nurse>>         #388E3C
+  FontColor<<nurse>>           #000000
+  
+  BackgroundColor<<enumeration>> #B3E5FC
+  BorderColor<<enumeration>>     #03A9F4
+  FontColor<<enumeration>>       #000000
+  
+  BackgroundColor<<staff>>     #B3E5FC
+  BorderColor<<staff>>         #03A9F4
+  FontColor<<staff>>           #000000
+  
+  BackgroundColor<<visit>>     #FFECB3
+  BorderColor<<visit>>         #F9A825
+  FontColor<<visit>>           #000000
+
+  BackgroundColor<<diagnosis>> #DCEDC8
+  BorderColor<<diagnosis>>     #4CAF50
+  FontColor<<diagnosis>>       #000000
+  
+  BackgroundColor<<lab>>       #FFCCBC
+  BorderColor<<lab>>           #F9A825
+  FontColor<<lab>>             #000000
+
+  BackgroundColor<<pharmacy>>  #E1BEE7
+  BorderColor<<pharmacy>>      #C2185B
+  FontColor<<pharmacy>>        #000000
+}
+
+package "Health Care App" <<in-scope>> {
+
+  package "Identity & Staff" {
+    class Clinician <<staff>> {
+      +id: UUID
+      +name: String
+      +role: ClinicianRole
+    }
+
+    ' enums as renderer-friendly classes
+    class ClinicianRole <<enumeration>> {
+      {static} Doctor
+      {static} Nurse
+    }
+
+    class Doctor <<doctor>>
+    class Nurse  <<nurse>>
+    Doctor --|> Clinician
+    Nurse  --|> Clinician
+  }
+
+  package "Patient & Visit" {
+    class Patient <<patient>> {
+      +id: UUID
+      +fullName: String
+      +dob: Date
+      +gender: String
+    }
+
+    class Appointment <<visit>> {
+      +id: UUID
+      +patientId: UUID
+      +clinicianId: UUID
+      +scheduledAt: DateTime
+      +status: ApptStatus
+    }
+
+    class ApptStatus <<enumeration>> {
+      {static} Booked
+      {static} InProgress
+      {static} Completed
+      {static} Cancelled
+    }
+
+    class PreCheckupRecord <<visit>> {
+      +id: UUID
+      +appointmentId: UUID
+      +heightCm: int
+      +weightKg: float
+      +bpSystolic: int
+      +bpDiastolic: int
+      +notes: String
+      +capturedBy: UUID
+    }
+
+    class MedicalHistoryEntry <<visit>> {
+      +id: UUID
+      +patientId: UUID
+      +type: String
+      +description: String
+      +recordedAt: DateTime
+      +source: String
+    }
+  }
+
+  package "Diagnosis" {
+    class Diagnosis <<diagnosis>> {
+      +id: UUID
+      +appointmentId: UUID
+      +clinicianId: UUID
+      +icd10Code: String
+      +summary: String
+      +status: DiagnosisStatus
+    }
+
+    class DiagnosisStatus <<enumeration>> {
+      {static} Draft
+      {static} Finalized
+    }
+  }
+
+  package "Pharmacy" {
+    class Prescription <<pharmacy>> {
+      +id: UUID
+      +diagnosisId: UUID
+      +issuedAt: DateTime
+      +notes: String
+    }
+
+    class MedicationItem <<pharmacy>> {
+      +id: UUID
+      +prescriptionId: UUID
+      +drugCode: String
+      +dose: String
+      +frequency: String
+      +durationDays: int
+      +route: String
+    }
+  }
+
+  package "Lab" {
+    class LabOrder <<lab>> {
+      +id: UUID
+      +diagnosisId: UUID
+      +orderedAt: DateTime
+      +status: LabOrderStatus
+    }
+
+    class LabOrderStatus <<enumeration>> {
+      {static} Placed
+      {static} InProgress
+      {static} Completed
+      {static} Cancelled
+    }
+
+    class LabTest <<lab>> {
+      +id: UUID
+      +labOrderId: UUID
+      +testCode: String
+      +name: String
+    }
+
+    class LabResult <<lab>> {
+      +id: UUID
+      +labOrderId: UUID
+      +reportedAt: DateTime
+      +resultSummary: String
+      +attachmentsUri: String
+    }
+  }
+
+  ' ---- Associations ----
+  Patient "1" -- "0..*" Appointment : books >
+  Clinician "1" -- "0..*" Appointment : handles >
+  Appointment "1" -- "0..1" PreCheckupRecord : has >
+  Patient "1" -- "0..*" MedicalHistoryEntry : has >
+
+  Appointment "1" -- "0..1" Diagnosis : leads to >
+  Diagnosis "1" -- "0..1" Prescription : issues >
+  Prescription "1" -- "1..*" MedicationItem : contains >
+
+  Diagnosis "1" -- "0..1" LabOrder : creates >
+  LabOrder "1" -- "1..*" LabTest : includes >
+  LabOrder "1" -- "0..1" LabResult : yields >
+
+  Clinician "1" -- "0..*" Diagnosis : author >
+}
+@enduml

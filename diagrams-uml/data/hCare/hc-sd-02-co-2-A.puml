@@ -1,0 +1,59 @@
+@startuml
+title Component — Diagnostics Module (bracket syntax, per-service colors)
+left to right direction
+skinparam componentStyle rectangle
+
+' --- Actors ---
+actor Patient as P_ACT #F8BBD0
+actor Doctor  as D_ACT #42A5F5
+actor Nurse   as N_ACT #FFB74D
+
+' --- Edge / Clients ---
+package "Clients & Edge" {
+  [Mobile/Web App] as APP
+  [API Gateway / BFF] as G #ECEFF1
+}
+
+' --- Diagnostic Services (light) ---
+package "Diagnostics" {
+  [Encounter Service]    as ENC  #F1F8E9
+  [PreCheckup Service]   as PRE  #FFFDE7
+  [History Service]      as HIST #F3E5F5
+  [Diagnostic Service]   as DIAG #EDE7F6
+  [Prescription Service] as RX   #FFF3E0
+  [Message Broker]       as MQ <<queue>> #ECEFF1
+}
+
+' --- Data Stores (darker shade of their service) ---
+package "Data Stores" {
+  database "Encounter DB" as ENC_DB #C5E1A5
+  database "History DB"   as HIST_DB #CE93D8
+  database "Rx DB"        as RX_DB #FFCC80
+}
+
+' --- Wiring ---
+P_ACT --> APP
+D_ACT --> APP
+N_ACT --> APP
+APP   --> G
+
+' Gateway to module services
+G --> ENC
+G --> PRE
+G --> HIST
+G --> DIAG
+G --> RX
+
+' Service-to-DB (color-paired)
+ENC  --> ENC_DB
+HIST --> HIST_DB
+RX   --> RX_DB
+
+' Inter-service collaborations
+PRE  ..> ENC  : attachPreCheckup
+DIAG ..> ENC  : recordFindings
+ENC  ..> HIST : fetchHistory
+DIAG ..> RX   : createPrescription
+RX   ..> MQ   : PrescriptionCreated
+
+@enduml

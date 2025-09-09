@@ -1,0 +1,32 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+LAYOUT_LEFT_RIGHT()
+
+' ---- Styles (tags) ----
+AddElementTag("patient",  $bgColor="#FFD54F", $fontColor="#000000", $borderColor="#C6A700")
+AddElementTag("lab",      $bgColor="#FF7043", $fontColor="#000000", $borderColor="#D84315")
+AddElementTag("nurse",    $bgColor="#81C784", $fontColor="#000000", $borderColor="#388E3C")
+AddElementTag("doctor",   $bgColor="#64B5F6", $fontColor="#000000", $borderColor="#1E88E5")
+AddElementTag("pharmacy", $bgColor="#F06292", $fontColor="#000000", $borderColor="#C2185B")
+AddElementTag("in-scope", $bgColor="#9C27B0", $fontColor="#FFFFFF", $borderColor="#6A1B9A")
+
+' ---- Elements ----
+Person(patient, "Patient", "Registers, books, views results & prescriptions", $tags="patient")
+Person(doctor, "Doctor", "Diagnoses, prescribes, reviews history", $tags="doctor")
+Person(nurse, "Nurse", "Pre-checkup, updates vitals", $tags="nurse")
+
+System_Boundary(app_b, "System in scope") {
+  System(app, "Health Care App", "Patient & clinician portal", $tags="in-scope")
+}
+
+System_Ext(lab, "Lab System", "External diagnostics", $tags="lab")
+System_Ext(pharmacy, "Pharmacy System", "External dispensing", $tags="pharmacy")
+
+' ---- Relationships ----
+Rel(patient, app, "Register/login, appointments; view results & prescriptions")
+Rel(doctor, app, "Submit diagnosis & eRx; view patient history")
+Rel(nurse, app, "Record pre-checkup data")
+Rel(app, lab, "Request tests / fetch results")
+Rel(app, pharmacy, "Send eRx / track fulfillment")
+@enduml
+

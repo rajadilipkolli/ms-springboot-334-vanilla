@@ -1,0 +1,52 @@
+@startuml
+title Sequence — Inventory Reservation (Pessimistic vs Optimistic)
+autonumber
+participant "Kafka (Event Bus)" as KAFKA #ECEFF1
+participant "Inventory Service" as INV   #E6F4EA
+participant "Inventory DB" as INV_DB     #C8E6C9
+participant "ProcessedMsg Store" as PM   #C8E6C9
+
+KAFKA -> INV: consume order.placed(orderId, lines, msgId)
+INV -> PM: tryInsert(msgId)        ' idempotency guard
+alt First delivery
+  ' --- Choose concurrency control strategy ---
+  alt Pessimistic Lock (SELECT ... FOR UPDATE)
+    INV -> INV_DB: BEGIN
+    INV -> INV_DB: SELECT stock WHERE sku IN (...) FOR UPDATE
+    INV_DB --> INV: rows (qty)
+    alt Enough stock
+      INV -> INV_DB: UPDATE stock SET qty = qty - n
+      INV -> INV_DB: INSERT reservation(orderId, lines)
+      INV -> INV_DB: COMMIT
+      INV -> PM: markDone(msgId)
+      INV -> KAFKA: publish inventory.reserved{orderId,reservationId}
+    else Insufficient
+      INV -> INV_DB: ROLLBACK
+      INV -> KAFKA: publish inventory.rejected{orderId,reason="out_of_stock"}
+    end
+  else Optimistic Concurrency (versioned update)
+    loop up to 3 retries
+      INV -> INV_DB: SELECT stock, version WHERE sku IN (...)
+      INV_DB --> INV: rows (qty, version)
+      alt Enough stock
+        INV -> INV_DB: UPDATE stock\nSET qty=qty-n, version=version+1\nWHERE sku=? AND version=?
+        alt updated=1 (no conflict)
+          INV -> INV_DB: INSERT reservation(orderId, lines)
+          INV -> PM: markDone(msgId)
+          INV -> KAFKA: publish inventory.reserved{orderId,reservationId}
+          break
+        else updated=0 (conflict)
+          ' someone updated first — retry
+        end
+      else Insufficient
+        INV -> KAFKA: publish inventory.rejected{orderId,reason="out_of_stock"}
+        break
+      end
+    end
+    ' if still conflicted after retries
+    INV -> KAFKA: publish inventory.conflict{orderId}  ' optional
+  end
+else Duplicate delivery
+  INV -> INV: skip (already processed)
+end
+@enduml

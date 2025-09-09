@@ -1,0 +1,92 @@
+@startuml
+title Component — Health Care App (bracket syntax, per-service colors)
+left to right direction
+skinparam componentStyle rectangle
+
+' --- Actors (same colors as before) ---
+actor Patient as P_ACT #F8BBD0
+actor Doctor  as D_ACT #42A5F5
+actor Nurse   as N_ACT #FFB74D
+
+' --- Edge / Clients ---
+cloud "Internet/CDN/WAF" as NET
+package "Clients & Edge" {
+  [Mobile/Web App] as APP
+  [API Gateway / BFF] as G #ECEFF1
+}
+
+' --- Services (light) + DBs (darker of same hue) ---
+package "Healthcare Services" {
+  [Auth Service]          as AUTH  #E0F7FA
+  [Patient Service]       as PAT   #E8F5E9
+  [Appointment Service]   as APPT  #E3F2FD
+  [Encounter Service]     as ENC   #F1F8E9
+  [PreCheckup Service]    as PRE   #FFFDE7
+  [History Service]       as HIST  #F3E5F5
+  [Diagnostic Service]    as DIAG  #EDE7F6
+  [Prescription Service]  as RX    #FFF3E0
+  [Lab Service]           as LAB   #E1F5FE
+  [Pharmacy Service]      as PHARM #FBE9E7
+  [Notification Service]  as NOTIF #E8EAF6
+  [Message Broker]        as MQ <<queue>> #ECEFF1
+}
+
+package "Data Stores" {
+  database "User/Identity DB" as ID_DB   #80DEEA
+  database "Patient DB"       as PAT_DB  #A5D6A7
+  database "Appointment DB"   as APPT_DB #90CAF9
+  database "Encounter DB"     as ENC_DB  #C5E1A5
+  database "History DB"       as HIST_DB #CE93D8
+  database "Rx DB"            as RX_DB   #FFCC80
+  database "Lab DB"           as LAB_DB  #81D4FA
+  database "Pharmacy DB"      as PHARM_DB #FFAB91
+  folder   "Object Storage (Lab PDFs/Images)" as OBJ
+}
+
+cloud "Email/SMS Provider" as ESMS
+cloud "External Lab Analyzer" as ANALYZER
+
+' --- Wiring (sample protocols shown as labels; adjust as needed) ---
+P_ACT --> NET
+D_ACT --> NET
+N_ACT --> NET
+NET  --> APP
+APP  --> G
+
+G --> AUTH
+G --> PAT
+G --> APPT
+G --> ENC
+G --> PRE
+G --> HIST
+G --> DIAG
+G --> RX
+G --> LAB
+G --> PHARM
+G --> NOTIF
+
+AUTH --> ID_DB
+PAT  --> PAT_DB
+APPT --> APPT_DB
+ENC  --> ENC_DB
+HIST --> HIST_DB
+RX   --> RX_DB
+LAB  --> LAB_DB
+PHARM--> PHARM_DB
+LAB  --> OBJ
+
+RX ..> LAB   : createLabOrder
+LAB ..> RX   : labResultReady
+RX ..> PHARM : ePrescription
+PHARM ..> RX : dispenseStatus
+LAB  ..> ANALYZER : HL7/LIS
+NOTIF --> ESMS
+
+PRE  ..> MQ
+DIAG ..> MQ
+LAB  ..> MQ
+RX   ..> MQ
+PHARM..> MQ
+
+
+@enduml
